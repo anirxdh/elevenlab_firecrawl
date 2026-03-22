@@ -15,14 +15,14 @@ export async function captureScreenshot(tabId?: number): Promise<string> {
 
     // Re-show the overlay after capture
     if (tabId) {
-      await chrome.tabs.sendMessage(tabId, { action: 'show-overlay' }).catch(() => {});
+      await chrome.tabs.sendMessage(tabId, { action: 'show-overlay' }).catch((err) => console.error('[ScreenSense] overlay restore after capture:', err));
     }
 
     return dataUrl;
   } catch (err) {
     // Re-show overlay even on error
     if (tabId) {
-      await chrome.tabs.sendMessage(tabId, { action: 'show-overlay' }).catch(() => {});
+      await chrome.tabs.sendMessage(tabId, { action: 'show-overlay' }).catch((err) => console.error('[ScreenSense] overlay restore after capture error:', err));
     }
     throw err;
   }

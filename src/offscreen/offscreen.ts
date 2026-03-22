@@ -36,7 +36,7 @@ async function startRecording(): Promise<void> {
     console.log('[ScreenSense][offscreen] getUserMedia succeeded, tracks:', stream.getTracks().length);
   } catch (err) {
     console.error('[ScreenSense][offscreen] getUserMedia failed:', err);
-    chrome.runtime.sendMessage({ action: 'offscreen-error', error: 'Microphone access denied' }).catch(() => {});
+    chrome.runtime.sendMessage({ action: 'offscreen-error', error: 'Microphone access denied' }).catch((err) => console.error('[ScreenSense] offscreen-error send:', err));
     return;
   }
 
@@ -81,10 +81,10 @@ async function startRecording(): Promise<void> {
       ampLogCount++;
     }
     // Send as regular array (Uint8Array doesn't serialize well in chrome messages)
-    chrome.runtime.sendMessage({ action: 'offscreen-amplitude', data: arr }).catch(() => {});
+    chrome.runtime.sendMessage({ action: 'offscreen-amplitude', data: arr }).catch((err) => console.error('[ScreenSense] amplitude send:', err));
   }, 50);
 
-  chrome.runtime.sendMessage({ action: 'offscreen-started' }).catch(() => {});
+  chrome.runtime.sendMessage({ action: 'offscreen-started' }).catch((err) => console.error('[ScreenSense] offscreen-started send:', err));
 }
 
 async function stopRecording(): Promise<void> {
@@ -158,4 +158,4 @@ chrome.runtime.onMessage.addListener((message) => {
 // and is ready to receive messages. This fixes the race condition where
 // createDocument() resolves before the script's onMessage listener is registered.
 console.log('[ScreenSense][offscreen] Script loaded, sending ready signal');
-chrome.runtime.sendMessage({ action: 'offscreen-ready' }).catch(() => {});
+chrome.runtime.sendMessage({ action: 'offscreen-ready' }).catch((err) => console.error('[ScreenSense] offscreen-ready send:', err));

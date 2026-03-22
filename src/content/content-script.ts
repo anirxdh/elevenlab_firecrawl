@@ -30,7 +30,7 @@ document.addEventListener('mousemove', (e: MouseEvent) => {
 
 // Safe message sender — prevents unhandled promise rejections
 function sendMessage(msg: Record<string, unknown>): void {
-  chrome.runtime.sendMessage(msg).catch(() => {});
+  chrome.runtime.sendMessage(msg).catch((err) => console.error('[ScreenSense] message send:', err));
 }
 
 // Wire up bubble callbacks for follow-up and clear
@@ -42,7 +42,7 @@ bubble.setCallbacks(
 // Cancel agent loop when Escape is pressed while bubble is visible
 document.addEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'Escape' && bubble.isVisible()) {
-    chrome.runtime.sendMessage({ action: 'cancel-agent-loop' }).catch(() => {});
+    chrome.runtime.sendMessage({ action: 'cancel-agent-loop' }).catch((err) => console.error('[ScreenSense] cancel-agent-loop send (Escape):', err));
   }
 }, true);
 
@@ -57,7 +57,7 @@ async function onHold(event: Event): Promise<void> {
 
   // If bubble is visible and in executing/understanding state, cancel the agent loop first
   if (bubble.isVisible()) {
-    chrome.runtime.sendMessage({ action: 'cancel-agent-loop' }).catch(() => {});
+    chrome.runtime.sendMessage({ action: 'cancel-agent-loop' }).catch((err) => console.error('[ScreenSense] cancel-agent-loop send (hold):', err));
     // Don't await — let cancel propagate in background
   }
 

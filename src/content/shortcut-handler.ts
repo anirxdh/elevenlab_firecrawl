@@ -149,7 +149,7 @@ function onStorageChanged(
 
 // Safe message sender — prevents unhandled promise rejections in MV3
 function sendMsg(msg: Record<string, unknown>): void {
-  chrome.runtime.sendMessage(msg).catch(() => {});
+  chrome.runtime.sendMessage(msg).catch((err) => console.error('[ScreenSense] shortcut message send:', err));
 }
 
 export function initShortcutHandler(): void {

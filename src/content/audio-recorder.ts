@@ -152,7 +152,7 @@ export class AudioRecorder {
     }
 
     if (this.audioContext) {
-      this.audioContext.close().catch(() => {});
+      this.audioContext.close().catch((err) => console.error('[ScreenSense] AudioContext close:', err));
       this.audioContext = null;
       this.analyser = null;
     }

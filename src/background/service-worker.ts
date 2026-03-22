@@ -137,7 +137,7 @@ function broadcastStateChange(state: ExtensionState): void {
       chrome.tabs.sendMessage(tabs[0].id, {
         action: 'state-changed' as const,
         state,
-      }).catch(() => {});
+      }).catch((err) => console.error('[ScreenSense] state-changed broadcast:', err));
     }
   });
 }
@@ -893,7 +893,7 @@ chrome.runtime.onMessage.addListener(
         // condition where stop arrives before the offscreen doc exists).
         recordingStartedPromise = ensureOffscreen().then(() => {
           console.log('[ScreenSense][SW] Sending start-recording to offscreen');
-          return chrome.runtime.sendMessage({ target: 'offscreen', action: 'start-recording' }).catch(() => {});
+          return chrome.runtime.sendMessage({ target: 'offscreen', action: 'start-recording' }).catch((err) => console.error('[ScreenSense] start-recording send:', err));
         }).then(() => {
           console.log('[ScreenSense][SW] start-recording message sent successfully');
         }).catch((err) => {
@@ -937,7 +937,7 @@ chrome.runtime.onMessage.addListener(
           chrome.tabs.sendMessage(recordingTabId, {
             action: 'amplitude-data',
             data: ampData,
-          }).catch(() => {});
+          }).catch((err) => console.error('[ScreenSense] amplitude-data forward to tab:', err));
         } else {
           console.warn('[ScreenSense][SW] amplitude received but recordingTabId is null');
         }
