@@ -2,7 +2,6 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 python-dotenv==1.0.1
 boto3==1.35.0
-amazon-transcribe>=0.6.0
 python-multipart==0.0.9
 sse-starlette==2.1.0
 requests>=2.31.0

@@ -4,8 +4,6 @@
  * Covers:
  *   - sendTask() request formatting and error handling
  *   - sendTaskContinue() request formatting
- *   - transcribeAudio() with FormData
- *   - transcribeAudioStreaming() WebSocket flow
  *   - TaskResponse interface with reasoning field
  *   - checkBackendHealth() success and failure
  *   - connectSSE() EventSource creation
@@ -15,45 +13,6 @@
 
 const mockFetch = jest.fn();
 Object.defineProperty(global, 'fetch', { value: mockFetch, writable: true });
-
-// Mock atob for base64 decoding (used by transcribeAudio)
-Object.defineProperty(global, 'atob', {
-  value: (str: string): string => Buffer.from(str, 'base64').toString('binary'),
-  writable: true,
-});
-
-// Mock Blob
-class MockBlob {
-  parts: any[];
-  options: any;
-  size: number;
-  type: string;
-  constructor(parts: any[], options?: any) {
-    this.parts = parts;
-    this.options = options;
-    this.size = parts.reduce((acc: number, p: any) => acc + (p.length || p.byteLength || 0), 0);
-    this.type = options?.type || '';
-  }
-}
-Object.defineProperty(global, 'Blob', { value: MockBlob, writable: true });
-
-// Mock FormData
-class MockFormData {
-  private data = new Map<string, any>();
-  append(key: string, value: any, filename?: string) {
-    this.data.set(key, { value, filename });
-  }
-  get(key: string) {
-    return this.data.get(key)?.value;
-  }
-  has(key: string) {
-    return this.data.has(key);
-  }
-  getFilename(key: string) {
-    return this.data.get(key)?.filename;
-  }
-}
-Object.defineProperty(global, 'FormData', { value: MockFormData, writable: true });
 
 // Mock EventSource
 class MockEventSource {
@@ -66,38 +25,9 @@ class MockEventSource {
 }
 Object.defineProperty(global, 'EventSource', { value: MockEventSource, writable: true });
 
-// Mock WebSocket
-let mockWSInstance: any = null;
-class MockWebSocket {
-  url: string;
-  binaryType: string = 'blob';
-  onopen: ((ev: any) => void) | null = null;
-  onmessage: ((ev: any) => void) | null = null;
-  onerror: ((ev: any) => void) | null = null;
-  onclose: ((ev: any) => void) | null = null;
-  sentMessages: any[] = [];
-  closed = false;
-
-  constructor(url: string) {
-    this.url = url;
-    mockWSInstance = this;
-  }
-
-  send(data: any) {
-    this.sentMessages.push(data);
-  }
-
-  close() {
-    this.closed = true;
-  }
-}
-Object.defineProperty(global, 'WebSocket', { value: MockWebSocket, writable: true });
-
 // ─── Import after mocks ──────────────────────────────────────────────────────
 
 import {
-  transcribeAudio,
-  transcribeAudioStreaming,
   sendTask,
   sendTaskContinue,
   checkBackendHealth,
@@ -123,7 +53,6 @@ function mockFetchResponse(status: number, body: any, ok?: boolean): void {
 describe('Backend Client', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockWSInstance = null;
     // Suppress console.log/error in tests
     jest.spyOn(console, 'log').mockImplementation(() => {});
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -132,240 +61,6 @@ describe('Backend Client', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
-  });
-
-  // ── transcribeAudio ────────────────────────────────────────────────────
-
-  describe('transcribeAudio()', () => {
-    it('sends FormData to /transcribe endpoint', async () => {
-      mockFetchResponse(200, { transcript: 'Hello world' });
-
-      const audioBase64 = Buffer.from('test audio data').toString('base64');
-      await transcribeAudio(audioBase64, 'audio/webm');
-
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      const [url, options] = mockFetch.mock.calls[0];
-      expect(url).toBe('http://localhost:8000/transcribe');
-      expect(options.method).toBe('POST');
-      // body should be a FormData instance
-      expect(options.body).toBeInstanceOf(MockFormData);
-    });
-
-    it('returns the transcript text on success', async () => {
-      mockFetchResponse(200, { transcript: 'This is a test transcript' });
-
-      const audioBase64 = Buffer.from('audio').toString('base64');
-      const result = await transcribeAudio(audioBase64, 'audio/webm');
-
-      expect(result).toBe('This is a test transcript');
-    });
-
-    it('includes audio blob and mime_type in FormData', async () => {
-      mockFetchResponse(200, { transcript: 'test' });
-
-      const audioBase64 = Buffer.from('audio data').toString('base64');
-      await transcribeAudio(audioBase64, 'audio/webm');
-
-      const formData = mockFetch.mock.calls[0][1].body as MockFormData;
-      expect(formData.has('audio')).toBe(true);
-      expect(formData.has('mime_type')).toBe(true);
-      expect(formData.get('mime_type')).toBe('audio/webm');
-    });
-
-    it('sets correct filename extension for webm', async () => {
-      mockFetchResponse(200, { transcript: 'test' });
-      const audioBase64 = Buffer.from('audio').toString('base64');
-      await transcribeAudio(audioBase64, 'audio/webm');
-
-      const formData = mockFetch.mock.calls[0][1].body as MockFormData;
-      expect(formData.getFilename('audio')).toBe('recording.webm');
-    });
-
-    it('sets correct filename extension for ogg', async () => {
-      mockFetchResponse(200, { transcript: 'test' });
-      const audioBase64 = Buffer.from('audio').toString('base64');
-      await transcribeAudio(audioBase64, 'audio/ogg');
-
-      const formData = mockFetch.mock.calls[0][1].body as MockFormData;
-      expect(formData.getFilename('audio')).toBe('recording.ogg');
-    });
-
-    it('sets correct filename extension for mp4', async () => {
-      mockFetchResponse(200, { transcript: 'test' });
-      const audioBase64 = Buffer.from('audio').toString('base64');
-      await transcribeAudio(audioBase64, 'audio/mp4');
-
-      const formData = mockFetch.mock.calls[0][1].body as MockFormData;
-      expect(formData.getFilename('audio')).toBe('recording.mp4');
-    });
-
-    it('defaults to webm extension for unknown mime types', async () => {
-      mockFetchResponse(200, { transcript: 'test' });
-      const audioBase64 = Buffer.from('audio').toString('base64');
-      await transcribeAudio(audioBase64, 'audio/wav');
-
-      const formData = mockFetch.mock.calls[0][1].body as MockFormData;
-      expect(formData.getFilename('audio')).toBe('recording.webm');
-    });
-
-    it('throws on non-200 response', async () => {
-      mockFetchResponse(500, { detail: 'Server error' }, false);
-
-      const audioBase64 = Buffer.from('audio').toString('base64');
-      await expect(transcribeAudio(audioBase64, 'audio/webm')).rejects.toThrow();
-    });
-
-    it('throws credential-specific error on 500 with credential detail', async () => {
-      mockFetchResponse(500, { detail: 'Backend AWS credentials not configured' }, false);
-
-      const audioBase64 = Buffer.from('audio').toString('base64');
-      await expect(transcribeAudio(audioBase64, 'audio/webm')).rejects.toThrow(
-        /credentials/i
-      );
-    });
-
-    it('throws generic error on 422 validation error', async () => {
-      mockFetchResponse(422, { detail: 'Validation failed' }, false);
-
-      const audioBase64 = Buffer.from('audio').toString('base64');
-      await expect(transcribeAudio(audioBase64, 'audio/webm')).rejects.toThrow(
-        /Transcription failed/
-      );
-    });
-
-    it('handles non-JSON error response body', async () => {
-      mockFetch.mockResolvedValueOnce({
-        status: 503,
-        ok: false,
-        json: () => Promise.reject(new Error('Not JSON')),
-        text: () => Promise.resolve('Service Unavailable'),
-      });
-
-      const audioBase64 = Buffer.from('audio').toString('base64');
-      await expect(transcribeAudio(audioBase64, 'audio/webm')).rejects.toThrow();
-    });
-  });
-
-  // ── transcribeAudioStreaming ────────────────────────────────────────────
-
-  describe('transcribeAudioStreaming()', () => {
-    it('connects WebSocket to /transcribe/stream', async () => {
-      const audioBase64 = Buffer.from('audio').toString('base64');
-
-      const promise = transcribeAudioStreaming(audioBase64, 'audio/webm');
-
-      // Wait a tick for the WebSocket constructor to be called
-      await new Promise(r => setTimeout(r, 0));
-
-      expect(mockWSInstance).not.toBeNull();
-      expect(mockWSInstance.url).toBe('ws://localhost:8000/transcribe/stream');
-
-      // Simulate open
-      mockWSInstance.onopen?.({});
-
-      // Should have sent 3 messages: config, audio binary, done signal
-      expect(mockWSInstance.sentMessages.length).toBe(3);
-      const configMsg = JSON.parse(mockWSInstance.sentMessages[0]);
-      expect(configMsg.mime_type).toBe('audio/webm');
-      const doneMsg = JSON.parse(mockWSInstance.sentMessages[2]);
-      expect(doneMsg.action).toBe('done');
-
-      // Simulate transcript response
-      mockWSInstance.onmessage?.({ data: JSON.stringify({ transcript: 'Hello from WS' }) });
-
-      const result = await promise;
-      expect(result).toBe('Hello from WS');
-      expect(mockWSInstance.closed).toBe(true);
-    });
-
-    it('rejects on WebSocket error', async () => {
-      const audioBase64 = Buffer.from('audio').toString('base64');
-
-      const promise = transcribeAudioStreaming(audioBase64, 'audio/webm');
-
-      await new Promise(r => setTimeout(r, 0));
-
-      // Simulate error
-      mockWSInstance.onerror?.({});
-
-      await expect(promise).rejects.toThrow(/WebSocket connection error/);
-    });
-
-    it('rejects when server returns error message', async () => {
-      const audioBase64 = Buffer.from('audio').toString('base64');
-
-      const promise = transcribeAudioStreaming(audioBase64, 'audio/webm');
-
-      await new Promise(r => setTimeout(r, 0));
-
-      mockWSInstance.onopen?.({});
-      mockWSInstance.onmessage?.({
-        data: JSON.stringify({ error: 'Model unavailable' }),
-      });
-
-      await expect(promise).rejects.toThrow(/Model unavailable/);
-    });
-
-    it('rejects when WebSocket closes before transcript', async () => {
-      const audioBase64 = Buffer.from('audio').toString('base64');
-
-      const promise = transcribeAudioStreaming(audioBase64, 'audio/webm');
-
-      await new Promise(r => setTimeout(r, 0));
-
-      mockWSInstance.onopen?.({});
-      mockWSInstance.onclose?.({});
-
-      await expect(promise).rejects.toThrow(/WebSocket closed before transcript/);
-    });
-
-    it('rejects on timeout (15 seconds)', async () => {
-      jest.useFakeTimers();
-
-      const audioBase64 = Buffer.from('audio').toString('base64');
-
-      const promise = transcribeAudioStreaming(audioBase64, 'audio/webm');
-
-      // Advance past 15s timeout
-      jest.advanceTimersByTime(16000);
-
-      await expect(promise).rejects.toThrow(/timed out/);
-
-      jest.useRealTimers();
-    });
-
-    it('sets binaryType to arraybuffer', async () => {
-      const audioBase64 = Buffer.from('audio').toString('base64');
-
-      const promise = transcribeAudioStreaming(audioBase64, 'audio/webm');
-
-      await new Promise(r => setTimeout(r, 0));
-
-      expect(mockWSInstance.binaryType).toBe('arraybuffer');
-
-      // Clean up: trigger error to resolve promise
-      mockWSInstance.onerror?.({});
-      await promise.catch(() => {});
-    });
-
-    it('ignores non-JSON messages', async () => {
-      const audioBase64 = Buffer.from('audio').toString('base64');
-
-      const promise = transcribeAudioStreaming(audioBase64, 'audio/webm');
-
-      await new Promise(r => setTimeout(r, 0));
-
-      mockWSInstance.onopen?.({});
-
-      // Send non-JSON message — should not reject
-      mockWSInstance.onmessage?.({ data: 'not json at all' });
-
-      // Then send actual transcript
-      mockWSInstance.onmessage?.({ data: JSON.stringify({ transcript: 'Real result' }) });
-
-      const result = await promise;
-      expect(result).toBe('Real result');
-    });
   });
 
   // ── sendTask ───────────────────────────────────────────────────────────

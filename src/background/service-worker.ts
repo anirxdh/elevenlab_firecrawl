@@ -1,8 +1,9 @@
 import { ExtensionState, IconState, MessageType, ConversationTurn, ConversationInfo, DomSnapshot } from '../shared/types';
-import { isMicPermissionGranted } from '../shared/storage';
+import { isMicPermissionGranted, getApiKeys } from '../shared/storage';
 import { MAX_CONVERSATION_TURNS } from '../shared/constants';
 import { captureScreenshot } from './screenshot';
-import { transcribeAudio, transcribeAudioStreaming, connectSSE, checkBackendHealth, sendTask, sendTaskContinue, TaskResponse, ActionHistoryEntry } from './api/backend-client';
+import { connectSSE, checkBackendHealth, sendTask, sendTaskContinue, TaskResponse, ActionHistoryEntry } from './api/backend-client';
+import { transcribe } from './transcription-service';
 // groq-vision imports retained for Phase 8+ migration
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { streamVisionResponse, generateTtsSummary } from './api/groq-vision';
@@ -576,14 +577,10 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
     const endTranscribe = dbgTimer('Pipeline: transcription');
     let transcript: string;
     try {
-      try {
-        transcript = await transcribeAudioStreaming(audioBase64, mimeType);
-        dbg(`Transcript (streaming): "${transcript}"`);
-      } catch (streamErr) {
-        dbg(`Streaming STT failed, falling back to batch: ${streamErr}`);
-        transcript = await transcribeAudio(audioBase64, mimeType);
-        dbg(`Transcript (batch): "${transcript}"`);
-      }
+      const { elevenLabsKey, groqKey } = await getApiKeys();
+      if (!elevenLabsKey) throw new Error('ElevenLabs API key not configured — check Settings');
+      transcript = await transcribe(audioBase64, mimeType, elevenLabsKey, groqKey);
+      dbg(`Transcript: "${transcript}"`);
       endTranscribe();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Couldn't catch that — try holding a bit longer";
