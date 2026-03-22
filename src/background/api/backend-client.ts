@@ -19,7 +19,7 @@ export interface TaskResponse {
   type: 'answer' | 'steps' | 'done';
   text?: string;
   summary?: string;  // used when type === 'done'
-  reasoning?: string;  // Nova's explanation of its decision
+  reasoning?: string;  // AI's explanation of its decision
   actions?: Array<{
     action: string;
     selector?: string;
@@ -27,7 +27,7 @@ export interface TaskResponse {
     url?: string;
     direction?: string;
     description: string;
-    speak?: string;  // 3-5 word TTS phrase from Nova
+    speak?: string;  // 3-5 word TTS phrase from AI
   }>;
   // Conversational response fields
   needs_clarification?: boolean;
@@ -46,7 +46,7 @@ export interface ActionHistoryEntry {
 }
 
 /**
- * Send a task (command + screenshot + DOM) to the backend for Nova 2 Lite reasoning.
+ * Send a task (command + screenshot + DOM) to the backend for Claude AI reasoning.
  */
 export async function sendTask(
   command: string,
@@ -99,7 +99,7 @@ export async function sendTask(
 }
 
 /**
- * Continue a multi-step task by sending updated page state + action history to Nova.
+ * Continue a multi-step task by sending updated page state + action history to Claude AI.
  * Called after each action batch during the agent loop.
  */
 export async function sendTaskContinue(
