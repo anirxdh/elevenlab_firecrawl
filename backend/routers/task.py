@@ -11,6 +11,8 @@ class TaskRequest(BaseModel):
     command: str = Field(..., max_length=5000)       # User's voice command text
     screenshot: str = Field(..., max_length=15_000_000)    # Base64-encoded PNG screenshot (~10MB base64)
     dom_snapshot: dict  # Structured DOM data (buttons, links, inputs, etc.)
+    firecrawl_markdown: str | None = None         # Clean page text from Firecrawl (optional)
+    conversation_history: list[dict] | None = None # Prior conversation turns (optional)
 
     @field_validator('dom_snapshot')
     @classmethod
@@ -26,6 +28,8 @@ class TaskContinueRequest(BaseModel):
     action_history: list[dict]     # [{"description": "...", "result": "..."}]
     screenshot: str = Field(..., max_length=15_000_000)                # Base64-encoded PNG screenshot (AFTER actions)
     dom_snapshot: dict             # Structured DOM data after last action
+    firecrawl_markdown: str | None = None         # Clean page text from Firecrawl (optional)
+    conversation_history: list[dict] | None = None # Prior conversation turns (optional)
 
     @field_validator('dom_snapshot')
     @classmethod
@@ -51,6 +55,8 @@ async def process_task(request: TaskRequest):
             request.command,
             request.screenshot,
             request.dom_snapshot,
+            request.firecrawl_markdown,
+            request.conversation_history,
         )
         await event_bus.emit(
             "status",
@@ -90,6 +96,8 @@ async def continue_task(request: TaskContinueRequest):
             request.action_history,
             request.screenshot,
             request.dom_snapshot,
+            request.firecrawl_markdown,
+            request.conversation_history,
         )
         await event_bus.emit(
             "status",

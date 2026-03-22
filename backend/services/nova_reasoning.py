@@ -237,6 +237,18 @@ CRITICAL RULES:
 
 IMPORTANT: Always look at the DOM snapshot FIRST to find the right selector. The screenshot helps you understand what the user sees, but the DOM snapshot has the actual selectors you must use."""
 
+CONVERSATIONAL_ADDENDUM = """
+You may respond with JSON containing any of these action types:
+- {"action": "click", "selector": "..."} — click an element
+- {"action": "type", "selector": "...", "value": "..."} — type text
+- {"action": "navigate", "url": "..."} — go to URL
+- {"action": "scroll", "direction": "..."} — scroll the page
+- {"speak": "..."} — speak a response to the user
+- {"needs_clarification": true, "question": "..."} — ask the user a question
+- {"options": [...], "question": "..."} — present choices
+- {"suggestion": "...", "requires_confirmation": true} — suggest an action
+"""
+
 
 def _call_nova(system_prompt: str, user_content: list[dict]) -> str:
     """Call Amazon Nova Lite via AWS Bedrock converse API with vision support."""
@@ -276,13 +288,21 @@ def _call_nova(system_prompt: str, user_content: list[dict]) -> str:
         ) from e
 
 
-def reason_about_page(command: str, screenshot_base64: str, dom_snapshot: dict) -> dict:
+def reason_about_page(
+    command: str,
+    screenshot_base64: str,
+    dom_snapshot: dict,
+    firecrawl_markdown: str | None = None,
+    conversation_history: list[dict] | None = None,
+) -> dict:
     """Reason about the current page using Amazon Nova Lite via Bedrock.
 
     Args:
         command: The user's voice command text.
         screenshot_base64: Base64-encoded PNG screenshot (raw base64, no data URI prefix).
         dom_snapshot: Structured DOM data with interactive elements and their CSS selectors.
+        firecrawl_markdown: Clean page text extracted by Firecrawl (optional).
+        conversation_history: Prior conversation turns as list of {"role": ..., "content": ...} dicts (optional).
 
     Returns:
         A dict with either:
@@ -293,6 +313,18 @@ def reason_about_page(command: str, screenshot_base64: str, dom_snapshot: dict) 
     # Decode compressed base64 back to raw bytes for Bedrock
     screenshot_bytes = base64.b64decode(compressed)
 
+    conversation_preamble = ""
+    if conversation_history:
+        turns = "\n".join(
+            f"{'User' if t['role'] == 'user' else 'Agent'}: {t['content']}"
+            for t in conversation_history
+        )
+        conversation_preamble = f"\nConversation so far:\n{turns}\n"
+
+    firecrawl_block = ""
+    if firecrawl_markdown:
+        firecrawl_block = f"\nPage content (via Firecrawl):\n{firecrawl_markdown[:15000]}\n"
+
     user_content = [
         {
             "type": "image",
@@ -302,14 +334,20 @@ def reason_about_page(command: str, screenshot_base64: str, dom_snapshot: dict) 
             "type": "text",
             "text": f"DOM Snapshot:\n{json.dumps(_truncate_dom(dom_snapshot))}",
         },
-        {
-            "type": "text",
-            "text": f"User command: {command}",
-        },
     ]
 
+    if firecrawl_block:
+        user_content.append({"type": "text", "text": firecrawl_block})
+
+    if conversation_preamble:
+        user_content.append({"type": "text", "text": conversation_preamble})
+
+    user_content.append({"type": "text", "text": f"User command: {command}"})
+
+    system_prompt = SYSTEM_PROMPT + CONVERSATIONAL_ADDENDUM
+
     try:
-        response_text = _call_nova(SYSTEM_PROMPT, user_content)
+        response_text = _call_nova(system_prompt, user_content)
 
         parsed = _extract_json(response_text)
         if parsed is not None:
@@ -329,6 +367,8 @@ def reason_continue(
     action_history: list[dict],
     screenshot_base64: str,
     dom_snapshot: dict,
+    firecrawl_markdown: str | None = None,
+    conversation_history: list[dict] | None = None,
 ) -> dict:
     """Continue reasoning about a multi-step task after actions have been taken."""
     # Compress action history for long chains
@@ -350,6 +390,18 @@ def reason_continue(
     else:
         formatted_history = "(no actions taken yet)"
 
+    conversation_preamble = ""
+    if conversation_history:
+        turns = "\n".join(
+            f"{'User' if t['role'] == 'user' else 'Agent'}: {t['content']}"
+            for t in conversation_history
+        )
+        conversation_preamble = f"\nConversation so far:\n{turns}\n"
+
+    firecrawl_block = ""
+    if firecrawl_markdown:
+        firecrawl_block = f"\nPage content (via Firecrawl):\n{firecrawl_markdown[:15000]}\n"
+
     compressed = _compress_screenshot(screenshot_base64)
     # Decode compressed base64 back to raw bytes for Bedrock
     screenshot_bytes = base64.b64decode(compressed)
@@ -363,18 +415,27 @@ def reason_continue(
             "type": "text",
             "text": f"DOM Snapshot:\n{json.dumps(_truncate_dom(dom_snapshot))}",
         },
-        {
-            "type": "text",
-            "text": (
-                f"Original command: {original_command}\n\n"
-                f"Actions completed so far:\n{formatted_history}\n\n"
-                f"What should I do next? If the task is complete, respond with type 'done'."
-            ),
-        },
     ]
 
+    if firecrawl_block:
+        user_content.append({"type": "text", "text": firecrawl_block})
+
+    if conversation_preamble:
+        user_content.append({"type": "text", "text": conversation_preamble})
+
+    user_content.append({
+        "type": "text",
+        "text": (
+            f"Original command: {original_command}\n\n"
+            f"Actions completed so far:\n{formatted_history}\n\n"
+            f"What should I do next? If the task is complete, respond with type 'done'."
+        ),
+    })
+
+    system_prompt = CONTINUE_SYSTEM_PROMPT + CONVERSATIONAL_ADDENDUM
+
     try:
-        response_text = _call_nova(CONTINUE_SYSTEM_PROMPT, user_content)
+        response_text = _call_nova(system_prompt, user_content)
 
         parsed = _extract_json(response_text)
         if parsed is not None:
