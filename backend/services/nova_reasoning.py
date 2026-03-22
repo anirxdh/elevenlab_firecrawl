@@ -3,14 +3,60 @@ import io
 import json
 import os
 import re
+import threading
 import time
 
 import boto3
+from botocore.config import Config as BotoConfig
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError
 from PIL import Image
 
 # Max chars for DOM snapshot JSON to stay under token limits
 DOM_SNAPSHOT_MAX_CHARS = 30000
+
+# ── Supported models ────────────────────────────────────────────────────────
+
+SUPPORTED_MODELS = {
+    "nova-lite": {
+        "model_id": "us.amazon.nova-lite-v1:0",
+        "max_tokens": 2048,
+        "description": "Amazon Nova Lite — fastest, cheapest, good for simple tasks",
+    },
+    "nova-pro": {
+        "model_id": "us.amazon.nova-pro-v1:0",
+        "max_tokens": 4096,
+        "description": "Amazon Nova Pro — better reasoning, still fast",
+    },
+    "claude-haiku": {
+        "model_id": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "max_tokens": 4096,
+        "description": "Claude Haiku 4.5 — best quality for browser agents, excellent vision",
+    },
+    "claude-sonnet": {
+        "model_id": "us.anthropic.claude-sonnet-4-20250514-v1:0",
+        "max_tokens": 4096,
+        "description": "Claude Sonnet 4 — highest quality reasoning, slower",
+    },
+}
+
+DEFAULT_MODEL = "nova-lite"
+
+
+def get_active_model() -> dict:
+    """Get the active model configuration from environment or default."""
+    model_key = os.getenv("SCREENSENSE_MODEL", DEFAULT_MODEL).lower().strip()
+    if model_key not in SUPPORTED_MODELS:
+        print(f"[nova_reasoning] Unknown model '{model_key}', falling back to {DEFAULT_MODEL}")
+        model_key = DEFAULT_MODEL
+    return SUPPORTED_MODELS[model_key]
+
+
+def get_model_id() -> str:
+    """Get the active Bedrock model ID."""
+    return get_active_model()["model_id"]
+
+
+# ── JSON extraction ─────────────────────────────────────────────────────────
 
 
 def _extract_json(text: str) -> dict | list | None:
@@ -66,6 +112,9 @@ def _extract_json(text: str) -> dict | list | None:
     return None
 
 
+# ── Screenshot compression ──────────────────────────────────────────────────
+
+
 def _compress_screenshot(screenshot_base64: str, max_width: int = 1024) -> str:
     """Downscale and compress screenshot to JPEG to reduce payload size."""
     try:
@@ -76,35 +125,47 @@ def _compress_screenshot(screenshot_base64: str, max_width: int = 1024) -> str:
             ratio = max_width / img.width
             new_size = (max_width, int(img.height * ratio))
             img = img.resize(new_size, Image.LANCZOS)
-        # Convert to JPEG
+        # Convert to JPEG with quality 80 for better vision model accuracy
         img = img.convert("RGB")
         buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=70)
+        img.save(buf, format="JPEG", quality=80)
         return base64.b64encode(buf.getvalue()).decode()
     except Exception:
         # If compression fails, return original
         return screenshot_base64
 
 
-def _truncate_dom(dom_snapshot: dict) -> dict:
-    """Truncate DOM snapshot to stay under token limits."""
-    dom_json = json.dumps(dom_snapshot)
-    if len(dom_json) <= DOM_SNAPSHOT_MAX_CHARS:
-        return dom_snapshot
+# ── DOM truncation ──────────────────────────────────────────────────────────
 
-    # Progressively trim: text_content first, then lists/tables, then trim arrays
+
+def _truncate_dom(dom_snapshot: dict, has_firecrawl: bool = False) -> dict:
+    """Truncate DOM snapshot to stay under token limits.
+
+    When Firecrawl markdown is present, drops text_content entirely
+    since Firecrawl provides richer page text.
+    """
     trimmed = dict(dom_snapshot)
 
-    # 1. Truncate text_content
+    # Drop text_content when Firecrawl provides richer page text
+    if has_firecrawl and "text_content" in trimmed:
+        trimmed["text_content"] = "(see Firecrawl markdown below)"
+
+    # Drop images array — the model can see them in the screenshot
+    if "images" in trimmed:
+        trimmed["images"] = trimmed["images"][:5]
+
+    dom_json = json.dumps(trimmed)
+    if len(dom_json) <= DOM_SNAPSHOT_MAX_CHARS:
+        return trimmed
+
+    # Progressively trim: text_content first, then lists/tables, then trim arrays
     if "text_content" in trimmed:
         trimmed["text_content"] = trimmed["text_content"][:2000]
 
-    # 2. Remove less critical fields
-    for field in ["tables", "lists", "images", "headings"]:
+    for field in ["tables", "lists", "headings"]:
         if field in trimmed and len(json.dumps(trimmed)) > DOM_SNAPSHOT_MAX_CHARS:
             trimmed[field] = trimmed[field][:3] if isinstance(trimmed[field], list) else trimmed[field]
 
-    # 3. Trim large arrays (keep first 15 items)
     for field in ["buttons", "links", "inputs", "products"]:
         if field in trimmed and isinstance(trimmed[field], list) and len(trimmed[field]) > 15:
             trimmed[field] = trimmed[field][:15]
@@ -112,32 +173,62 @@ def _truncate_dom(dom_snapshot: dict) -> dict:
     return trimmed
 
 
+# ── Bedrock client (singleton) ──────────────────────────────────────────────
+
+_bedrock_client = None
+_bedrock_lock = threading.Lock()
+
+
 def _get_bedrock_client():
-    """Create a Bedrock Runtime client using AWS credentials from environment."""
-    key = os.getenv("AWS_ACCESS_KEY_ID", "")
-    secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
-    placeholders = {"your-key-here", "your-aws-access-key", "your-aws-secret-key", ""}
+    """Get or create a singleton Bedrock Runtime client."""
+    global _bedrock_client
+    if _bedrock_client is not None:
+        return _bedrock_client
 
-    if not key or key in placeholders or not secret or secret in placeholders:
-        raise ValueError(
-            "AWS credentials not configured — set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in backend/.env"
-        )
+    with _bedrock_lock:
+        if _bedrock_client is not None:
+            return _bedrock_client
 
-    try:
-        client = boto3.client(
-            "bedrock-runtime",
-            region_name=os.getenv("AWS_REGION", "us-east-1"),
-            aws_access_key_id=key,
-            aws_secret_access_key=secret,
-        )
-        return client
-    except (NoCredentialsError, PartialCredentialsError) as e:
-        raise ValueError(
-            "AWS credentials not configured — set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in backend/.env"
-        ) from e
-    except Exception as e:
-        raise ValueError(f"Failed to create Bedrock client: {e}") from e
+        key = os.getenv("AWS_ACCESS_KEY_ID", "")
+        secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+        placeholders = {"your-key-here", "your-aws-access-key", "your-aws-secret-key", ""}
 
+        if not key or key in placeholders or not secret or secret in placeholders:
+            raise ValueError(
+                "AWS credentials not configured — set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in backend/.env"
+            )
+
+        try:
+            bedrock_config = BotoConfig(
+                max_pool_connections=10,
+                retries={"max_attempts": 3, "mode": "adaptive"},
+                connect_timeout=5,
+                read_timeout=30,
+            )
+            _bedrock_client = boto3.client(
+                "bedrock-runtime",
+                region_name=os.getenv("AWS_REGION", "us-east-1"),
+                aws_access_key_id=key,
+                aws_secret_access_key=secret,
+                config=bedrock_config,
+            )
+            return _bedrock_client
+        except (NoCredentialsError, PartialCredentialsError) as e:
+            raise ValueError(
+                "AWS credentials not configured — set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in backend/.env"
+            ) from e
+        except Exception as e:
+            raise ValueError(f"Failed to create Bedrock client: {e}") from e
+
+
+def _reset_bedrock_client():
+    """Reset the singleton client (used in tests)."""
+    global _bedrock_client
+    with _bedrock_lock:
+        _bedrock_client = None
+
+
+# ── System prompts ──────────────────────────────────────────────────────────
 
 CONTINUE_SYSTEM_PROMPT = """You are ScreenSense, a screen-aware AI execution agent in a Chrome extension.
 You are CONTINUING a multi-step task that is already in progress.
@@ -272,9 +363,18 @@ Include your classification: {"intent": "<type>", ...rest of response}
 """
 
 
+# ── Core LLM call ───────────────────────────────────────────────────────────
+
+
 def _call_nova(system_prompt: str, user_content: list[dict]) -> str:
-    """Call Amazon Nova Lite via AWS Bedrock converse API with vision support."""
+    """Call an AI model via AWS Bedrock converse API with vision support.
+
+    Supports Nova Lite, Nova Pro, Claude Haiku 4.5, and Claude Sonnet 4.
+    Model is selected via the SCREENSENSE_MODEL environment variable.
+    """
     client = _get_bedrock_client()
+    model = get_active_model()
+    model_id = model["model_id"]
 
     # Build Bedrock-format message content
     bedrock_content = []
@@ -293,10 +393,10 @@ def _call_nova(system_prompt: str, user_content: list[dict]) -> str:
 
     try:
         response = client.converse(
-            modelId="us.amazon.nova-lite-v1:0",
+            modelId=model_id,
             system=[{"text": system_prompt}],
             messages=[{"role": "user", "content": bedrock_content}],
-            inferenceConfig={"maxTokens": 2048},
+            inferenceConfig={"maxTokens": model["max_tokens"]},
         )
         response_text = response["output"]["message"]["content"][0]["text"]
         return response_text
@@ -312,6 +412,9 @@ def _call_nova(system_prompt: str, user_content: list[dict]) -> str:
         ) from e
 
 
+# ── Public reasoning functions ──────────────────────────────────────────────
+
+
 def reason_about_page(
     command: str,
     screenshot_base64: str,
@@ -319,7 +422,7 @@ def reason_about_page(
     firecrawl_markdown: str | None = None,
     conversation_history: list[dict] | None = None,
 ) -> dict:
-    """Reason about the current page using Amazon Nova Lite via Bedrock.
+    """Reason about the current page using an AI model via Bedrock.
 
     Args:
         command: The user's voice command text.
@@ -340,7 +443,6 @@ def reason_about_page(
         raise ValueError("Invalid screenshot: could not decode base64 data")
 
     compressed = _compress_screenshot(screenshot_base64)
-    # Decode compressed base64 back to raw bytes for Bedrock
     screenshot_bytes = base64.b64decode(compressed)
 
     conversation_preamble = ""
@@ -356,14 +458,8 @@ def reason_about_page(
         firecrawl_block = f"\nPage content (via Firecrawl):\n{firecrawl_markdown[:15000]}\n"
 
     user_content = [
-        {
-            "type": "image",
-            "bytes": screenshot_bytes,
-        },
-        {
-            "type": "text",
-            "text": f"DOM Snapshot:\n{json.dumps(_truncate_dom(dom_snapshot))}",
-        },
+        {"type": "image", "bytes": screenshot_bytes},
+        {"type": "text", "text": f"DOM Snapshot:\n{json.dumps(_truncate_dom(dom_snapshot, has_firecrawl=bool(firecrawl_markdown)))}"},
     ]
 
     if firecrawl_block:
@@ -443,18 +539,11 @@ def reason_continue(
         firecrawl_block = f"\nPage content (via Firecrawl):\n{firecrawl_markdown[:15000]}\n"
 
     compressed = _compress_screenshot(screenshot_base64)
-    # Decode compressed base64 back to raw bytes for Bedrock
     screenshot_bytes = base64.b64decode(compressed)
 
     user_content = [
-        {
-            "type": "image",
-            "bytes": screenshot_bytes,
-        },
-        {
-            "type": "text",
-            "text": f"DOM Snapshot:\n{json.dumps(_truncate_dom(dom_snapshot))}",
-        },
+        {"type": "image", "bytes": screenshot_bytes},
+        {"type": "text", "text": f"DOM Snapshot:\n{json.dumps(_truncate_dom(dom_snapshot, has_firecrawl=bool(firecrawl_markdown)))}"},
     ]
 
     if firecrawl_block:

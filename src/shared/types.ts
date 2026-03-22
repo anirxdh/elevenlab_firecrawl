@@ -13,6 +13,14 @@ export type BubbleState =
 
 export type ExplanationLevel = 'kid' | 'school' | 'college' | 'phd' | 'executive';
 
+export type SttProvider = 'elevenlabs' | 'deepgram' | 'groq';
+
+export interface ApiKeys {
+  groqKey?: string;
+  elevenLabsKey?: string;
+  deepgramKey?: string;
+}
+
 export interface ExtensionSettings {
   shortcutKey: string; // default: '`'
   holdDelayMs: number; // default: 200
@@ -21,6 +29,7 @@ export interface ExtensionSettings {
   explanationLevel: ExplanationLevel; // default: 'college'
   voiceId: string; // default: DEFAULT_VOICE_ID
   ttsModel: string; // default: DEFAULT_TTS_MODEL
+  sttProvider: SttProvider; // default: 'groq'
 }
 
 export type ExtensionState = 'idle' | 'listening' | 'processing';

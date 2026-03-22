@@ -53,6 +53,7 @@ export interface ElementInfo {
   role?: string;     // semantic role: "button", "link", "submit", "nav", etc.
   href?: string;
   visible: boolean;
+  inViewport: boolean;
   bbox?: { x: number; y: number; w: number; h: number };
 }
 
@@ -63,6 +64,7 @@ export interface InputInfo {
   placeholder: string;
   label?: string;
   visible: boolean;
+  inViewport: boolean;
   bbox?: { x: number; y: number; w: number; h: number };
 }
 
@@ -82,6 +84,16 @@ function isVisible(el: Element): boolean {
   if (!visible) return false;
   const rect = el.getBoundingClientRect();
   return rect.width > 0 && rect.height > 0;
+}
+
+function isInViewport(el: Element): boolean {
+  const rect = el.getBoundingClientRect();
+  return (
+    rect.bottom > 0 &&
+    rect.top < window.innerHeight &&
+    rect.right > 0 &&
+    rect.left < window.innerWidth
+  );
 }
 
 function getBBox(el: Element): { x: number; y: number; w: number; h: number } {
@@ -310,6 +322,7 @@ function scrapeButtons(): ElementInfo[] {
       text,
       role: classifyElement(el, text),
       visible: true,
+      inViewport: isInViewport(el),
       bbox: getBBox(el),
     });
   }
@@ -341,6 +354,7 @@ function scrapeLinks(): ElementInfo[] {
       role: linkRole,
       href: anchor.href || undefined,
       visible: true,
+      inViewport: isInViewport(el),
       bbox: getBBox(el),
     });
   }
@@ -363,6 +377,7 @@ function buildInputInfo(el: HTMLInputElement | HTMLTextAreaElement | HTMLSelectE
     placeholder: (el as HTMLInputElement | HTMLTextAreaElement).placeholder || '',
     label: findLabel(el),
     visible: isVisible(el),
+    inViewport: isInViewport(el),
     bbox: getBBox(el),
   };
 }

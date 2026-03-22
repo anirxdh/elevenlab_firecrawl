@@ -1,7 +1,17 @@
 import { ExtensionSettings } from './types';
 
 // ElevenLabs TTS defaults
-export const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+export const DEFAULT_VOICE_ID = '9BWtsMINqrJLrRacOk9x';
+
+export const VOICE_OPTIONS = [
+  { id: '9BWtsMINqrJLrRacOk9x', name: 'Aria', description: 'Expressive, natural female' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Chris', description: 'Casual, friendly male' },
+  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Brian', description: 'Deep, authoritative male' },
+  { id: '29vD33N1CtxCmqQRPOHJ', name: 'Drew', description: 'Professional, clear male' },
+  { id: 'iP95p4xoKVk53GoZ742B', name: 'Charlotte', description: 'Calm, Swedish female' },
+  { id: 'TxGEqnHWrfWFTfGW9XjX', name: 'Josh', description: 'Deep, young male' },
+  { id: '21m00Tcm4TlvDq8ikWAM', name: 'Rachel', description: 'Classic, warm female' },
+] as const;
 export const DEFAULT_TTS_MODEL = 'eleven_flash_v2_5';
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {
@@ -12,6 +22,7 @@ export const DEFAULT_SETTINGS: ExtensionSettings = {
   explanationLevel: 'college',
   voiceId: DEFAULT_VOICE_ID,
   ttsModel: DEFAULT_TTS_MODEL,
+  sttProvider: 'groq',
 };
 
 export const STORAGE_KEYS = {

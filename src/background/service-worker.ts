@@ -135,24 +135,72 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
       return;
     }
 
-    // Stage 1: Transcribe audio
+    // Stage 1: Transcribe audio, scrape DOM, and scrape URL in parallel
     sendToTab(tabId, { action: 'bubble-state', state: 'transcribing' });
 
-    const endTranscribe = dbgTimer('Pipeline: transcription');
-    let transcript: string;
+    // Fetch API keys before parallel block (needed for transcription)
+    const { elevenLabsKey, deepgramKey, groqKey } = await getApiKeys();
+    if (!elevenLabsKey) {
+      sendToTab(tabId, { action: 'pipeline-error', error: 'ElevenLabs API key not configured — check Settings' });
+      currentState = 'idle';
+      resolveIconState();
+      broadcastStateChange('idle');
+      return;
+    }
+
+    // Get current tab URL for Firecrawl (independent of DOM scrape)
+    let currentTabUrl: string | undefined;
     try {
-      const { elevenLabsKey, groqKey } = await getApiKeys();
-      if (!elevenLabsKey) throw new Error('ElevenLabs API key not configured — check Settings');
-      transcript = await transcribe(audioBase64, mimeType, elevenLabsKey, groqKey);
-      dbg(`Transcript: "${transcript}"`);
-      endTranscribe();
-    } catch (err) {
+      const tab = await chrome.tabs.get(tabId);
+      currentTabUrl = tab.url;
+    } catch {
+      // Tab URL not available — Firecrawl will be skipped
+    }
+
+    const endTranscribe = dbgTimer('Pipeline: transcription');
+
+    // Run transcription, DOM scrape, and Firecrawl scrape in parallel
+    const [transcribeResult, domResponse, firecrawlMarkdown] = await Promise.all([
+      // Transcription — errors are captured, not thrown, so we can handle them below
+      transcribe(audioBase64, mimeType, elevenLabsKey, deepgramKey, groqKey)
+        .then(t => ({ ok: true as const, transcript: t }))
+        .catch(err => ({ ok: false as const, error: err })),
+      // DOM scrape — non-fatal
+      chrome.tabs.sendMessage(tabId, { action: 'scrape-dom' })
+        .catch(() => ({ ok: false })),
+      // Firecrawl scrape — non-fatal, skip if no URL
+      currentTabUrl
+        ? scrapeUrl(currentTabUrl).catch(err => {
+            dbg(`Firecrawl scrape failed (non-fatal): ${err}`);
+            return undefined;
+          })
+        : Promise.resolve(undefined),
+    ]);
+
+    // Handle transcription result
+    if (!transcribeResult.ok) {
+      const err = transcribeResult.error;
       const msg = err instanceof Error ? err.message : "Couldn't catch that — try holding a bit longer";
       sendToTab(tabId, { action: 'pipeline-error', error: msg });
       currentState = 'idle';
       resolveIconState();
       broadcastStateChange('idle');
       return;
+    }
+    const transcript = transcribeResult.transcript;
+    dbg(`Transcript: "${transcript}"`);
+    endTranscribe();
+
+    // Build DOM snapshot from parallel result
+    let domSnapshot: Partial<DomSnapshot> = {};
+    if (domResponse?.ok && (domResponse as { ok: boolean; snapshot?: DomSnapshot }).snapshot) {
+      domSnapshot = (domResponse as { ok: boolean; snapshot: DomSnapshot }).snapshot;
+    } else {
+      console.warn('[ScreenSense] Could not scrape DOM, proceeding without');
+    }
+
+    if (firecrawlMarkdown) {
+      dbg(`Firecrawl scraped ${firecrawlMarkdown.length} chars`);
     }
 
     // Record user turn in conversation manager
@@ -161,29 +209,6 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
 
     sendToTab(tabId, { action: 'bubble-set-task', task: transcript });
     sendToTab(tabId, { action: 'bubble-state', state: 'understanding', label: transcript });
-
-    // Capture DOM snapshot from content script
-    let domSnapshot: Partial<DomSnapshot> = {};
-    try {
-      const domResponse = await chrome.tabs.sendMessage(tabId, { action: 'scrape-dom' });
-      if (domResponse?.ok && domResponse.snapshot) {
-        domSnapshot = domResponse.snapshot;
-      }
-    } catch {
-      console.warn('[ScreenSense] Could not scrape DOM, proceeding without');
-    }
-
-    // Scrape current URL via Firecrawl (optional, non-blocking on failure)
-    let firecrawlMarkdown: string | undefined;
-    try {
-      const currentUrl = (domSnapshot as DomSnapshot).url;
-      if (currentUrl) {
-        firecrawlMarkdown = await scrapeUrl(currentUrl);
-        dbg(`Firecrawl scraped ${firecrawlMarkdown.length} chars`);
-      }
-    } catch (err) {
-      dbg(`Firecrawl scrape failed (non-fatal): ${err}`);
-    }
 
     // Get conversation history for context
     const conversationHistory = conversation.getTextOnlyHistory(tabId);
@@ -583,7 +608,7 @@ registerHandler('offscreen-error', (message) => {
 
 registerHandler('elevenlabs-tts', (message, _sender, sendResponse) => {
   const ttsMsg = message as unknown as { action: 'elevenlabs-tts'; voiceId: string; text: string; apiKey: string; modelId: string };
-  fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ttsMsg.voiceId}`, {
+  fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ttsMsg.voiceId}/stream`, {
     method: 'POST',
     headers: {
       'xi-api-key': ttsMsg.apiKey,
@@ -593,6 +618,7 @@ registerHandler('elevenlabs-tts', (message, _sender, sendResponse) => {
       text: ttsMsg.text,
       model_id: ttsMsg.modelId,
       voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+      output_format: 'mp3_44100_128',
     }),
   })
     .then(async (resp) => {

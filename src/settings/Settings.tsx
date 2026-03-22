@@ -3,7 +3,7 @@ import {
   getSettings,
   saveSettings,
 } from '../shared/storage';
-import { DEFAULT_SETTINGS } from '../shared/constants';
+import { DEFAULT_SETTINGS, VOICE_OPTIONS } from '../shared/constants';
 import { ExtensionSettings, DisplayMode, ExplanationLevel } from '../shared/types';
 
 /* ─── Gear Illustration ─── */
@@ -144,14 +144,32 @@ const Settings: React.FC = () => {
 
             <div className="field-group">
               <label className="field-label">Voice ID</label>
-              <input
-                type="text"
-                className="text-input"
-                placeholder="ElevenLabs Voice ID"
+              <select
                 value={settings.voiceId}
-                onChange={(e) => setSettings({ ...settings, voiceId: e.target.value })}
-              />
-              <p className="field-hint">Your ElevenLabs voice ID — find it in your ElevenLabs dashboard</p>
+                onChange={e => setSettings(prev => ({ ...prev!, voiceId: e.target.value }))}
+                className="select-input"
+              >
+                {VOICE_OPTIONS.map(voice => (
+                  <option key={voice.id} value={voice.id}>
+                    {voice.name} — {voice.description}
+                  </option>
+                ))}
+              </select>
+              <p className="field-hint">Choose a voice for spoken responses</p>
+            </div>
+
+            <div className="field-group">
+              <label className="field-label">Speech-to-Text Provider</label>
+              <select
+                value={settings.sttProvider || 'elevenlabs'}
+                onChange={e => setSettings(prev => ({ ...prev!, sttProvider: e.target.value as any }))}
+                className="select-input"
+              >
+                <option value="elevenlabs">ElevenLabs Scribe (recommended)</option>
+                <option value="deepgram">Deepgram Nova-3 (best accuracy)</option>
+                <option value="groq">Groq Whisper (free tier)</option>
+              </select>
+              <p className="field-hint">Choose which speech recognition service processes your voice commands</p>
             </div>
 
             <div className="field-group">
@@ -274,6 +292,19 @@ const Settings: React.FC = () => {
         }
         .text-input::placeholder { color: rgba(255,255,255,0.15); }
         .text-input:focus { border-color: rgba(255,153,0,0.4); background: rgba(255,153,0,0.04); box-shadow: 0 0 0 3px rgba(255,153,0,0.1); }
+
+        .select-input {
+          width: 100%; padding: 14px 16px; background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08); border-radius: 14px;
+          font-size: 14px; color: rgba(255,255,255,0.9); outline: none;
+          transition: all 0.3s ease; box-sizing: border-box;
+          -webkit-appearance: none; appearance: none; cursor: pointer;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23FF9900' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat; background-position: right 16px center;
+        }
+        .select-input option { background: #1a1f2e; color: rgba(255,255,255,0.9); }
+        .select-input:focus { border-color: rgba(255,153,0,0.4); background-color: rgba(255,153,0,0.04); box-shadow: 0 0 0 3px rgba(255,153,0,0.1); }
+
         .field-hint { margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.2); }
         .field-link { color: rgba(255,153,0,0.7); text-decoration: none; transition: color 0.2s; }
         .field-link:hover { color: #FF9900; text-decoration: underline; }

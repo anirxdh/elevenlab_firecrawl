@@ -1,4 +1,4 @@
-import { ExtensionSettings } from './types';
+import { ExtensionSettings, ApiKeys } from './types';
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from './constants';
 
 export async function getSettings(): Promise<ExtensionSettings> {
@@ -29,18 +29,16 @@ export async function setSetupComplete(): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEYS.SETUP_COMPLETE]: true });
 }
 
-export async function getApiKeys(): Promise<{ groqKey?: string; elevenLabsKey?: string }> {
+export async function getApiKeys(): Promise<ApiKeys> {
   const result = await chrome.storage.local.get(STORAGE_KEYS.API_KEYS);
   const stored = result[STORAGE_KEYS.API_KEYS] || {};
   return {
     groqKey: stored.groqKey || undefined,
     elevenLabsKey: stored.elevenLabsKey || undefined,
+    deepgramKey: stored.deepgramKey || undefined,
   };
 }
 
-export async function saveApiKeys(keys: {
-  groqKey?: string;
-  elevenLabsKey?: string;
-}): Promise<void> {
+export async function saveApiKeys(keys: ApiKeys): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEYS.API_KEYS]: keys });
 }
