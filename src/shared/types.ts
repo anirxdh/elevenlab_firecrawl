@@ -32,13 +32,79 @@ export interface ShortcutEvent {
 }
 
 export interface ConversationTurn {
-  role: 'user' | 'assistant';
+  role: 'user' | 'agent';
   content: string;
 }
 
 export interface ConversationInfo {
   turns: number;
   maxTurns: number;
+}
+
+export interface ElementInfo {
+  selector: string;
+  text: string;
+  role?: string;
+  href?: string;
+}
+
+export interface InputInfo {
+  selector: string;
+  label: string;
+  type: string;
+  value: string;
+  placeholder: string;
+}
+
+export interface FormInfo {
+  selector: string;
+  action: string;
+  inputs: InputInfo[];
+}
+
+export interface ProductInfo {
+  name: string;
+  price: string;
+  selector: string;
+}
+
+export interface DomSnapshot {
+  url: string;
+  title: string;
+  buttons: ElementInfo[];
+  links: ElementInfo[];
+  inputs: InputInfo[];
+  forms: FormInfo[];
+  headings: { level: number; text: string }[];
+  images: { alt: string; src: string }[];
+  tables: string[][];
+  lists: string[];
+  products: ProductInfo[];
+  selectedText: string;
+  metaDescription: string;
+}
+
+export interface TaskStep {
+  action: string;
+  selector?: string;
+  value?: string;
+  url?: string;
+  direction?: string;
+  speak?: string;
+  reason?: string;
+}
+
+export interface TaskResponse {
+  answer?: string;
+  steps?: TaskStep[];
+  done?: boolean;
+  speak?: string;
+  needs_clarification?: boolean;
+  question?: string;
+  options?: string[];
+  suggestion?: string;
+  requires_confirmation?: boolean;
+  research?: { urls: string[] };
 }
 
 export type MessageType =
@@ -76,4 +142,10 @@ export type MessageType =
   | { action: 'cancel-agent-loop' }
   | { action: 'wait-for-dom-stable'; timeout?: number; settleMs?: number }
   | { action: 'bubble-set-task'; task: string }
-  | { action: 'bubble-done-summary'; steps: string[] };
+  | { action: 'bubble-done-summary'; steps: string[] }
+  | { action: 'offscreen-amplitude'; data: number[] }
+  | { action: 'offscreen-recording-complete'; audioBase64: string; mimeType: string }
+  | { action: 'offscreen-error'; error: string }
+  | { action: 'offscreen-ready' }
+  | { action: 'offscreen-started' }
+  | { action: 'elevenlabs-tts'; voiceId: string; text: string; apiKey: string; modelId: string };

@@ -1,4 +1,4 @@
-import { ExtensionState, IconState, MessageType, ConversationTurn, ConversationInfo } from '../shared/types';
+import { ExtensionState, IconState, MessageType, ConversationTurn, ConversationInfo, DomSnapshot } from '../shared/types';
 import { isMicPermissionGranted } from '../shared/storage';
 import { MAX_CONVERSATION_TURNS } from '../shared/constants';
 import { captureScreenshot } from './screenshot';
@@ -60,9 +60,7 @@ async function ensureOffscreen(): Promise<void> {
 }
 
 async function _ensureOffscreen(): Promise<void> {
-  const chrome_ = chrome as any;
-
-  const contexts = await chrome_.runtime.getContexts({
+  const contexts = await (chrome.runtime as unknown as { getContexts: (filter: object) => Promise<unknown[]> }).getContexts({
     contextTypes: ['OFFSCREEN_DOCUMENT'],
   });
 
@@ -77,7 +75,7 @@ async function _ensureOffscreen(): Promise<void> {
   });
 
   console.log('[ScreenSense][SW] Creating offscreen document...');
-  await chrome_.offscreen.createDocument({
+  await (chrome as unknown as { offscreen: { createDocument: (opts: object) => Promise<void> } }).offscreen.createDocument({
     url: 'offscreen.html',
     reasons: ['USER_MEDIA'],
     justification: 'Microphone recording for voice queries',
@@ -171,7 +169,7 @@ function getDebugLog(): string {
 }
 
 // Expose globally for console access
-(globalThis as any).__screensenseDebugLog = getDebugLog;
+(globalThis as Record<string, unknown>).__screensenseDebugLog = getDebugLog;
 
 // ─── Pipeline ───
 
@@ -226,9 +224,9 @@ async function waitForDomStable(tabId: number, timeout = 2000, settleMs = 300): 
 }
 
 /** Wait until DOM scrape returns meaningful content (buttons/inputs/links > 0) */
-async function waitForDomContent(tabId: number, maxWaitMs = 8000): Promise<object> {
+async function waitForDomContent(tabId: number, maxWaitMs = 8000): Promise<Partial<DomSnapshot>> {
   const start = Date.now();
-  let lastSnapshot: object = {};
+  let lastSnapshot: Partial<DomSnapshot> = {};
   let attempt = 0;
 
   while (Date.now() - start < maxWaitMs) {
@@ -377,7 +375,7 @@ async function runAgentLoop(
         actionHistory.push({ description: step.description, result: result.summary });
 
         // Speak short action phrase — use Nova's "speak" field if available, else generate from result
-        const speakText = (step as any).speak || shortSpeak(result.summary);
+        const speakText = step.speak || shortSpeak(result.summary);
         sendToTab(tabId, { action: 'tts-summary', summary: speakText });
       }
 
@@ -446,7 +444,7 @@ async function runAgentLoop(
 
     // Re-scrape DOM — wait for meaningful content (handles AJAX-heavy pages)
     const endDomTimer = dbgTimer('DOM content wait');
-    let domSnapshot: object = {};
+    let domSnapshot: Partial<DomSnapshot> = {};
     try {
       domSnapshot = await waitForDomContent(tabId, 5000);
     } catch {
@@ -454,10 +452,10 @@ async function runAgentLoop(
     }
     endDomTimer();
     const domKeys = domSnapshot ? Object.keys(domSnapshot) : [];
-    const domButtonCount = (domSnapshot as any)?.buttons?.length || 0;
-    const domInputCount = (domSnapshot as any)?.inputs?.length || 0;
-    const domLinkCount = (domSnapshot as any)?.links?.length || 0;
-    const domUrl = (domSnapshot as any)?.url || 'unknown';
+    const domButtonCount = domSnapshot?.buttons?.length || 0;
+    const domInputCount = domSnapshot?.inputs?.length || 0;
+    const domLinkCount = domSnapshot?.links?.length || 0;
+    const domUrl = domSnapshot?.url || 'unknown';
     dbg(`DOM snapshot: url=${domUrl} keys=${domKeys.length} buttons=${domButtonCount} inputs=${domInputCount} links=${domLinkCount}`);
     if (domKeys.length === 0) {
       dbg('WARNING: DOM snapshot is EMPTY — content script may have returned before page loaded');
@@ -600,7 +598,7 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
     sendToTab(tabId, { action: 'bubble-state', state: 'understanding', label: transcript });
 
     // Capture DOM snapshot from content script
-    let domSnapshot: object = {};
+    let domSnapshot: Partial<DomSnapshot> = {};
     try {
       const domResponse = await chrome.tabs.sendMessage(tabId, { action: 'scrape-dom' });
       if (domResponse?.ok && domResponse.snapshot) {
@@ -648,7 +646,7 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
       // Add to conversation history
       const history = getConversation(tabId);
       history.push({ role: 'user', content: transcript });
-      history.push({ role: 'assistant', content: answerText });
+      history.push({ role: 'agent', content: answerText });
       while (history.length > MAX_CONVERSATION_TURNS * 2) {
         history.shift();
         history.shift();
@@ -664,7 +662,7 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
 
       const history = getConversation(tabId);
       history.push({ role: 'user', content: transcript });
-      history.push({ role: 'assistant', content: stepsText });
+      history.push({ role: 'agent', content: stepsText });
       while (history.length > MAX_CONVERSATION_TURNS * 2) {
         history.shift();
         history.shift();
@@ -707,7 +705,7 @@ async function runFollowUp(tabId: number, text: string): Promise<void> {
     sendToTab(tabId, { action: 'bubble-state', state: 'understanding', label: text });
 
     // Capture DOM snapshot from content script
-    let domSnapshot: object = {};
+    let domSnapshot: Partial<DomSnapshot> = {};
     try {
       const domResponse = await chrome.tabs.sendMessage(tabId, { action: 'scrape-dom' });
       if (domResponse?.ok && domResponse.snapshot) {
@@ -745,7 +743,7 @@ async function runFollowUp(tabId: number, text: string): Promise<void> {
 
       const history = getConversation(tabId);
       history.push({ role: 'user', content: text });
-      history.push({ role: 'assistant', content: answerText });
+      history.push({ role: 'agent', content: answerText });
       while (history.length > MAX_CONVERSATION_TURNS * 2) {
         history.shift();
         history.shift();
@@ -761,7 +759,7 @@ async function runFollowUp(tabId: number, text: string): Promise<void> {
 
       const history = getConversation(tabId);
       history.push({ role: 'user', content: text });
-      history.push({ role: 'assistant', content: stepsText });
+      history.push({ role: 'agent', content: stepsText });
       while (history.length > MAX_CONVERSATION_TURNS * 2) {
         history.shift();
         history.shift();
@@ -928,9 +926,9 @@ chrome.runtime.onMessage.addListener(
         break;
       }
 
-      case 'offscreen-amplitude' as string: {
+      case 'offscreen-amplitude': {
         // Forward amplitude data to the recording tab's content script for waveform
-        const ampData = (message as any).data;
+        const ampData = (message as { action: 'offscreen-amplitude'; data: number[] }).data;
         if (recordingTabId) {
           if (!swAmpLogged) {
             console.log('[ScreenSense][SW] forwarding amplitude to tab', recordingTabId, 'dataLen=', ampData?.length, 'first8=', ampData?.slice(0, 8));
@@ -946,7 +944,7 @@ chrome.runtime.onMessage.addListener(
         break;
       }
 
-      case 'offscreen-ready' as string:
+      case 'offscreen-ready':
         console.log('[ScreenSense][SW] Offscreen document script loaded');
         if (offscreenReadyResolve) {
           offscreenReadyResolve();
@@ -954,12 +952,12 @@ chrome.runtime.onMessage.addListener(
         }
         break;
 
-      case 'offscreen-started' as string:
+      case 'offscreen-started':
         console.log('[ScreenSense][SW] Offscreen recording started');
         break;
 
-      case 'offscreen-recording-complete' as string: {
-        const msg = message as any;
+      case 'offscreen-recording-complete': {
+        const msg = message as { action: 'offscreen-recording-complete'; audioBase64: string; mimeType: string };
         console.log('[ScreenSense][SW] Offscreen recording complete, audioBase64 length:', msg.audioBase64?.length, 'mimeType:', msg.mimeType, 'pendingTabId:', pendingTabId);
         const tabId = pendingTabId;
         pendingTabId = null;
@@ -972,19 +970,21 @@ chrome.runtime.onMessage.addListener(
         break;
       }
 
-      case 'offscreen-error' as string:
-        console.error('[ScreenSense] Offscreen error:', (message as any).error);
+      case 'offscreen-error': {
+        const errMsg = (message as { action: 'offscreen-error'; error: string }).error;
+        console.error('[ScreenSense] Offscreen error:', errMsg);
         if (pendingTabId) {
-          sendToTab(pendingTabId, { action: 'pipeline-error', error: (message as any).error });
+          sendToTab(pendingTabId, { action: 'pipeline-error', error: errMsg });
         }
         currentState = 'idle';
         resolveIconState();
         broadcastStateChange('idle');
         break;
+      }
 
-      case 'elevenlabs-tts' as string: {
+      case 'elevenlabs-tts': {
         // Proxy ElevenLabs TTS through service worker to avoid page CSP blocking
-        const ttsMsg = message as any;
+        const ttsMsg = message as { action: 'elevenlabs-tts'; voiceId: string; text: string; apiKey: string; modelId: string };
         fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ttsMsg.voiceId}`, {
           method: 'POST',
           headers: {
@@ -1024,7 +1024,7 @@ chrome.runtime.onMessage.addListener(
 
       case 'follow-up':
         if (sender.tab?.id) {
-          runFollowUp(sender.tab.id, (message as any).text);
+          runFollowUp(sender.tab.id, (message as { action: 'follow-up'; text: string }).text);
         }
         sendResponse({ ok: true });
         break;

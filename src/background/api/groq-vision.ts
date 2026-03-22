@@ -35,8 +35,10 @@ export async function streamVisionResponse(
   ];
 
   // Add conversation history as text-only messages (no old screenshots to save context)
+  // Map internal 'agent' role to the Groq API's 'assistant' role
   for (const turn of history) {
-    messages.push({ role: turn.role, content: turn.content });
+    const groqRole: 'user' | 'assistant' = turn.role === 'agent' ? 'assistant' : 'user';
+    messages.push({ role: groqRole, content: turn.content });
   }
 
   // Current turn: screenshot + query
