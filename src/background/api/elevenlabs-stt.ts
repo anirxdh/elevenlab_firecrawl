@@ -1,3 +1,5 @@
+import { getMimeExtension } from '../../shared/mime-utils';
+
 const ELEVENLABS_STT_URL = 'https://api.elevenlabs.io/v1/speech-to-text';
 
 /**
@@ -18,13 +20,7 @@ export async function transcribeAudio(
   const audioBlob = new Blob([bytes], { type: mimeType });
 
   // Determine file extension from mimeType
-  const ext = mimeType.includes('webm')
-    ? 'webm'
-    : mimeType.includes('ogg')
-      ? 'ogg'
-      : mimeType.includes('mp4')
-        ? 'mp4'
-        : 'webm';
+  const ext = getMimeExtension(mimeType);
 
   const formData = new FormData();
   formData.append('audio', audioBlob, `recording.${ext}`);

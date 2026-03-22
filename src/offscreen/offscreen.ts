@@ -3,6 +3,7 @@
  * Runs in the extension's origin so mic permission is granted once and persists
  * across all page navigations.
  */
+import { getSupportedMimeType } from '../shared/mime-utils';
 
 let mediaRecorder: MediaRecorder | null = null;
 let audioContext: AudioContext | null = null;
@@ -52,17 +53,10 @@ async function startRecording(): Promise<void> {
   analyser.smoothingTimeConstant = 0.8;
   source.connect(analyser);
 
-  // Choose best MIME type — prefer ogg (more compatible with transcription APIs)
-  let mimeType: string | undefined;
-  if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
-    mimeType = 'audio/ogg;codecs=opus';
-  } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-    mimeType = 'audio/webm;codecs=opus';
-  } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-    mimeType = 'audio/webm';
-  }
+  // Choose best MIME type using shared utility
+  const mimeType = getSupportedMimeType();
 
-  mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+  mediaRecorder = new MediaRecorder(stream, { mimeType });
 
   mediaRecorder.ondataavailable = (event: BlobEvent) => {
     if (event.data.size > 0) {

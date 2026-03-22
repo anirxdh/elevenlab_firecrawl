@@ -1,3 +1,5 @@
+import { getMimeExtension } from '../../shared/mime-utils';
+
 const GROQ_STT_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
 
 /**
@@ -16,13 +18,7 @@ export async function transcribeAudio(
   }
   const audioBlob = new Blob([bytes], { type: mimeType });
 
-  const ext = mimeType.includes('webm')
-    ? 'webm'
-    : mimeType.includes('ogg')
-      ? 'ogg'
-      : mimeType.includes('mp4')
-        ? 'mp4'
-        : 'webm';
+  const ext = getMimeExtension(mimeType);
 
   const formData = new FormData();
   formData.append('file', audioBlob, `recording.${ext}`);

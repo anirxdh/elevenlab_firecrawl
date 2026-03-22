@@ -1,3 +1,5 @@
+import { getSupportedMimeType } from '../shared/mime-utils';
+
 export class AudioRecorder {
   private mediaRecorder: MediaRecorder | null = null;
   private audioContext: AudioContext | null = null;
@@ -28,18 +30,13 @@ export class AudioRecorder {
     this.analyser.smoothingTimeConstant = 0.8;
     source.connect(this.analyser);
 
-    // Choose best available MIME type
-    let mimeType: string | undefined;
-    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-      mimeType = 'audio/webm;codecs=opus';
-    } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-      mimeType = 'audio/webm';
-    }
+    // Choose best available MIME type using shared utility
+    const mimeType = getSupportedMimeType();
 
     // Create MediaRecorder
     this.mediaRecorder = new MediaRecorder(
       this.stream,
-      mimeType ? { mimeType } : undefined
+      { mimeType }
     );
 
     this.mediaRecorder.ondataavailable = (event: BlobEvent) => {
