@@ -2,6 +2,9 @@ import { renderMarkdown } from './markdown';
 import { BubbleState, ConversationInfo, DisplayMode } from '../shared/types';
 import { speak, stop as stopTts, isTtsEnabled, setTtsEnabled, isSpeaking } from './tts';
 import { getSettings } from '../shared/storage';
+import { BubbleStateMachine } from './bubble-state-machine';
+import { WaveformRenderer } from './waveform-renderer';
+import { ChatHistoryManager } from './chat-history';
 
 // ---------------------------------------------------------------------------
 // SVG icons
@@ -607,9 +610,6 @@ const BUBBLE_STYLES = `
 // Constants
 // ---------------------------------------------------------------------------
 
-const BAR_COUNT = 10;
-const MIN_HEIGHT = 2;
-const MAX_HEIGHT = 18;
 const CURSOR_OFFSET_Y = 20;
 const BUBBLE_WIDTH_PILL = 180;   // listening state only
 const BUBBLE_WIDTH_STATUS = 320; // all other states
@@ -617,7 +617,8 @@ const BUBBLE_WIDTH_ANSWER = 444;
 const BUBBLE_MAX_HEIGHT_ANSWER = 500;
 
 // ---------------------------------------------------------------------------
-// CursorBubble class
+// CursorBubble class — container that composes state machine, waveform,
+// and chat history modules.
 // ---------------------------------------------------------------------------
 
 export class CursorBubble {
@@ -635,20 +636,15 @@ export class CursorBubble {
   private contextFill: HTMLDivElement | null = null;
   private contextLabel: HTMLSpanElement | null = null;
   private ttsBtn: HTMLButtonElement | null = null;
-  private waveformBars: HTMLDivElement[] = [];
-  private taskBannerEl: HTMLDivElement | null = null;
 
-  // State machine
-  private currentState: BubbleState = 'idle';
+  // Composed modules
+  private stateMachine = new BubbleStateMachine();
+  private waveform = new WaveformRenderer();
+  private chatHistory = new ChatHistoryManager();
+
+  // Visibility & tracking
   private visible = false;
   private tracking = false;
-
-  // Task tracking
-  private currentTask = '';
-  private completedSteps: string[] = [];
-
-  // Persistent chat history — survives bubble dismiss/re-show
-  private chatHistory: Array<{ type: 'question' | 'step' | 'result' | 'failed' | 'thinking' | 'done'; text: string }> = [];
 
   // Accumulated content (answer streaming)
   private accumulatedText = '';
@@ -749,7 +745,7 @@ export class CursorBubble {
 
     this.startTracking();
     this.visible = true;
-    this.ampLogCount = 0;
+    this.waveform.resetLogCount();
   }
 
   /**
@@ -765,38 +761,34 @@ export class CursorBubble {
 
     if (!this.bubbleEl) return;
 
-    this.currentState = state;
-
     // Store the transcript when it arrives with the 'understanding' state
     if (state === 'understanding' && label) {
       this.currentTranscript = label;
     }
 
-    // Clear state-specific classes
-    this.bubbleEl.classList.remove(
-      'state-listening', 'state-transcribing', 'state-understanding',
-      'state-planning', 'state-executing', 'state-answering',
-      'state-error', 'state-done'
-    );
-    this.bubbleEl.classList.add(`state-${state}`);
-
     // Cancel any pending auto-dismiss from a previous state (unless we're in a state that sets its own)
-    if (state !== 'error' && state !== 'done') {
+    if (this.stateMachine.shouldCancelAutoDismiss(state)) {
       this.clearAutoDismiss();
     }
+
+    // Transition the state machine (updates CSS classes on bubbleEl)
+    this.stateMachine.transition(state, this.bubbleEl, label);
 
     // Re-render content area for the new state
     if (state === 'answering') {
       this.renderAnsweringState();
-    } else if (state === 'understanding' && this.stepLogEl && this.bubbleEl?.contains(this.stepLogEl)) {
+    } else if (state === 'understanding' && this.chatHistory.getStepLogEl() && this.bubbleEl?.contains(this.chatHistory.getStepLogEl())) {
       // Preserve step log during re-evaluation — just add a "thinking" entry
-      this.completeLastStep();
-      this.addStepEntry(label || 'Re-evaluating...', 'thinking');
-    } else if (state === 'executing' && this.stepLogEl && this.bubbleEl?.contains(this.stepLogEl)) {
+      this.chatHistory.completeLastStep();
+      this.chatHistory.addStepEntry(label || 'Re-evaluating...', 'thinking');
+    } else if (state === 'executing' && this.chatHistory.getStepLogEl() && this.bubbleEl?.contains(this.chatHistory.getStepLogEl())) {
       // Preserve step log when transitioning back to executing
       // Remove the last "thinking" entry if present
-      const lastThinking = this.stepLogEl.querySelector('.screensense-step-icon.thinking');
-      if (lastThinking) lastThinking.parentElement?.remove();
+      const stepLogEl = this.chatHistory.getStepLogEl();
+      if (stepLogEl) {
+        const lastThinking = stepLogEl.querySelector('.screensense-step-icon.thinking');
+        if (lastThinking) lastThinking.parentElement?.remove();
+      }
     } else {
       this.clearContentArea();
       this.renderState(state, label);
@@ -807,32 +799,11 @@ export class CursorBubble {
    * Update waveform bar heights from microphone frequency data.
    * Only meaningful in 'listening' state.
    */
-  private ampLogCount = 0;
-
   updateAmplitude(frequencyData: Uint8Array): void {
-    if (this.currentState !== 'listening' || this.waveformBars.length === 0) {
-      if (this.ampLogCount < 3) {
-        console.log('[ScreenSense][bubble] updateAmplitude SKIPPED: state=', this.currentState, 'bars=', this.waveformBars.length);
-        this.ampLogCount++;
-      }
+    if (this.stateMachine.getState() !== 'listening') {
       return;
     }
-
-    const binCount = frequencyData.length;
-    const step = Math.floor(binCount / BAR_COUNT);
-
-    if (this.ampLogCount < 5) {
-      const max = Math.max(...Array.from(frequencyData));
-      console.log(`[ScreenSense][bubble] updateAmplitude applying: bins=${binCount} step=${step} max=${max} bars=${this.waveformBars.length}`);
-      this.ampLogCount++;
-    }
-
-    for (let i = 0; i < BAR_COUNT; i++) {
-      const index = Math.min(i * step, binCount - 1);
-      const value = frequencyData[index];
-      const height = MIN_HEIGHT + (value / 255) * (MAX_HEIGHT - MIN_HEIGHT);
-      this.waveformBars[i].style.height = `${height}px`;
-    }
+    this.waveform.updateAmplitude(frequencyData);
   }
 
   /**
@@ -841,7 +812,7 @@ export class CursorBubble {
   setStep(name: string, index: number, total: number): void {
     if (!this.bubbleEl) return;
 
-    if (this.currentState !== 'executing') {
+    if (this.stateMachine.getState() !== 'executing') {
       this.setState('executing');
     }
 
@@ -852,21 +823,24 @@ export class CursorBubble {
 
     if (isResult) {
       // Complete the previous "active" step and add result
-      this.completeLastStep();
+      this.chatHistory.completeLastStep();
       this.addCompletedStep(name);
     } else if (isFailed) {
       // Mark previous as failed, add failure entry
-      const lastActive = this.stepLogEl?.querySelector('.screensense-step-icon.active');
-      if (lastActive) {
-        lastActive.classList.remove('active');
-        lastActive.classList.add('failed');
-        lastActive.textContent = '\u2717';
+      const stepLogEl = this.chatHistory.getStepLogEl();
+      if (stepLogEl) {
+        const lastActive = stepLogEl.querySelector('.screensense-step-icon.active');
+        if (lastActive) {
+          lastActive.classList.remove('active');
+          lastActive.classList.add('failed');
+          lastActive.textContent = '\u2717';
+        }
       }
-      this.addStepEntry(name, 'failed');
+      this.chatHistory.addStepEntry(name, 'failed');
     } else if (!isRetrying) {
       // New action intent — add as active
-      this.completeLastStep(); // complete any prior active step
-      this.addStepEntry(name, 'active');
+      this.chatHistory.completeLastStep(); // complete any prior active step
+      this.chatHistory.addStepEntry(name, 'active');
     }
   }
 
@@ -877,7 +851,7 @@ export class CursorBubble {
   appendChunk(text: string): void {
     if (!this.responseEl) {
       // Transition to answering if not already
-      if (this.currentState !== 'answering') {
+      if (this.stateMachine.getState() !== 'answering') {
         this.setState('answering');
       }
     }
@@ -1067,63 +1041,32 @@ export class CursorBubble {
    */
   /** Set the current task text — shown persistently in the bubble */
   setTask(task: string): void {
-    this.currentTask = task;
-    this.completedSteps = [];
-    this.chatHistory.push({ type: 'question', text: task });
-    this.ensureTaskBanner();
+    this.chatHistory.setTask(task);
   }
 
   /** Clear the persistent chat history */
   clearChatHistory(): void {
-    this.chatHistory = [];
-    this.completedSteps = [];
-    this.currentTask = '';
+    this.chatHistory.clearHistory();
   }
 
   /** Show a done summary with all completed steps */
   showDoneSummary(steps: string[]): void {
     if (!this.bubbleEl) return;
-
-    // Remove any existing summary
-    const existing = this.bubbleEl.querySelector('.screensense-done-summary');
-    if (existing) existing.remove();
-
-    if (steps.length === 0) return;
-
-    const summaryEl = document.createElement('div');
-    summaryEl.className = 'screensense-done-summary';
-
-    for (const step of steps) {
-      const itemEl = document.createElement('div');
-      itemEl.className = 'screensense-done-summary-item';
-
-      const checkEl = document.createElement('span');
-      checkEl.className = 'screensense-done-summary-check';
-      checkEl.textContent = '\u2713';
-
-      const textEl = document.createElement('span');
-      textEl.textContent = step;
-
-      itemEl.appendChild(checkEl);
-      itemEl.appendChild(textEl);
-      summaryEl.appendChild(itemEl);
-    }
-
-    this.bubbleEl.appendChild(summaryEl);
+    this.chatHistory.showDoneSummary(this.bubbleEl, steps);
   }
 
   /** Track a completed step for the done summary */
   addCompletedStep(step: string): void {
-    this.completedSteps.push(step);
+    this.chatHistory.addCompletedStep(step);
   }
 
   showReasoning(text: string): void {
     if (!this.bubbleEl) return;
 
     // Add reasoning as a "thinking" entry in the step log
-    if (this.stepLogEl) {
-      this.completeLastStep();
-      this.addStepEntry(text, 'thinking');
+    if (this.chatHistory.getStepLogEl()) {
+      this.chatHistory.completeLastStep();
+      this.chatHistory.addStepEntry(text, 'thinking');
     }
   }
 
@@ -1162,18 +1105,7 @@ export class CursorBubble {
   private renderListening(): void {
     if (!this.bubbleEl) return;
 
-    // Waveform container
-    const waveformEl = document.createElement('div');
-    waveformEl.className = 'screensense-waveform';
-
-    this.waveformBars = [];
-    for (let i = 0; i < BAR_COUNT; i++) {
-      const bar = document.createElement('div');
-      bar.className = 'wave-bar';
-      waveformEl.appendChild(bar);
-      this.waveformBars.push(bar);
-    }
-
+    const waveformEl = this.waveform.createWaveform();
     this.bubbleEl.appendChild(waveformEl);
   }
 
@@ -1181,7 +1113,7 @@ export class CursorBubble {
     if (!this.bubbleEl) return;
 
     // Show task banner during processing states
-    this.ensureTaskBanner();
+    this.chatHistory.ensureTaskBanner(this.bubbleEl);
 
     const statusEl = document.createElement('div');
     statusEl.className = 'screensense-status';
@@ -1197,92 +1129,9 @@ export class CursorBubble {
     this.bubbleEl.appendChild(statusEl);
   }
 
-  private stepLogEl: HTMLDivElement | null = null;
-
   private renderExecuting(label?: string): void {
     if (!this.bubbleEl) return;
-
-    // Show task banner (user's question)
-    this.ensureTaskBanner();
-
-    // Create the step log container
-    if (!this.stepLogEl || !this.bubbleEl.contains(this.stepLogEl)) {
-      this.stepLogEl = document.createElement('div');
-      this.stepLogEl.className = 'screensense-step-log';
-      this.bubbleEl.appendChild(this.stepLogEl);
-
-      // Replay persistent history into the new DOM
-      this.replayHistory();
-    }
-  }
-
-  /** Replay chat history into the step log DOM */
-  private replayHistory(): void {
-    if (!this.stepLogEl) return;
-    for (const entry of this.chatHistory) {
-      if (entry.type === 'question') {
-        // Add a separator for each question in the history
-        const sep = document.createElement('div');
-        sep.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.4);font-style:italic;padding:6px 0 2px;border-top:0.5px solid rgba(255,255,255,0.06);margin-top:4px;';
-        sep.textContent = `"${entry.text}"`;
-        this.stepLogEl.appendChild(sep);
-      } else {
-        const typeMap: Record<string, 'active' | 'done' | 'failed' | 'thinking'> = {
-          step: 'done', // historical steps are all completed
-          result: 'done',
-          failed: 'failed',
-          thinking: 'thinking',
-          done: 'done',
-        };
-        this.renderStepEntryToLog(entry.text, typeMap[entry.type] || 'done');
-      }
-    }
-    this.stepLogEl.scrollTop = this.stepLogEl.scrollHeight;
-  }
-
-  /** Add an entry to the chat-style step log */
-  private addStepEntry(text: string, type: 'active' | 'done' | 'failed' | 'thinking'): void {
-    // Record in persistent history
-    const histType = type === 'active' ? 'step' : type === 'done' ? 'result' : type;
-    this.chatHistory.push({ type: histType as any, text });
-
-    this.renderStepEntryToLog(text, type);
-  }
-
-  private renderStepEntryToLog(text: string, type: 'active' | 'done' | 'failed' | 'thinking'): void {
-    if (!this.stepLogEl) return;
-
-    const entry = document.createElement('div');
-    entry.className = 'screensense-step-entry';
-
-    const icon = document.createElement('div');
-    icon.className = `screensense-step-icon ${type}`;
-    if (type === 'done') icon.textContent = '\u2713';
-    else if (type === 'failed') icon.textContent = '\u2717';
-    else if (type === 'active') icon.textContent = '\u25CB';
-    else icon.textContent = '\u25CB';
-
-    const textEl = document.createElement('span');
-    textEl.className = `screensense-step-text ${type === 'done' ? 'result' : type === 'failed' ? 'failed' : type === 'thinking' ? 'thinking' : ''}`;
-    textEl.textContent = text;
-
-    entry.appendChild(icon);
-    entry.appendChild(textEl);
-    this.stepLogEl.appendChild(entry);
-
-    // Auto-scroll to bottom
-    this.stepLogEl.scrollTop = this.stepLogEl.scrollHeight;
-  }
-
-  /** Mark the last active step as done */
-  private completeLastStep(): void {
-    if (!this.stepLogEl) return;
-    const lastActive = this.stepLogEl.querySelector('.screensense-step-icon.active');
-    if (lastActive) {
-      lastActive.classList.remove('active');
-      lastActive.classList.add('done');
-      lastActive.textContent = '\u2713';
-    }
+    this.chatHistory.renderExecuting(this.bubbleEl);
   }
 
   private renderError(error: string): void {
@@ -1298,7 +1147,7 @@ export class CursorBubble {
     if (!this.bubbleEl) return;
 
     // Show task banner if present
-    this.ensureTaskBanner();
+    this.chatHistory.ensureTaskBanner(this.bubbleEl);
 
     const doneEl = document.createElement('div');
     doneEl.className = 'screensense-done';
@@ -1315,12 +1164,13 @@ export class CursorBubble {
     this.bubbleEl.appendChild(doneEl);
 
     // Show completed steps summary if we have any
-    if (this.completedSteps.length > 0) {
-      this.showDoneSummary(this.completedSteps);
+    const completedSteps = this.chatHistory.getCompletedSteps();
+    if (completedSteps.length > 0) {
+      this.chatHistory.showDoneSummary(this.bubbleEl);
     }
 
     // Auto-dismiss after longer if we have a summary to show
-    const dismissDelay = this.completedSteps.length > 0 ? 5000 : 2000;
+    const dismissDelay = completedSteps.length > 0 ? 5000 : 2000;
     this.autoDismissTimer = setTimeout(() => {
       this.dismiss();
     }, dismissDelay);
@@ -1399,7 +1249,7 @@ export class CursorBubble {
     this.bubbleEl.style.width = '';
     this.bubbleEl.style.padding = '';
     this.bubbleEl.style.borderRadius = '';
-    this.waveformBars = [];
+    this.waveform.cleanup();
 
     // Reset sub-element refs
     this.historyEl = null;
@@ -1412,26 +1262,7 @@ export class CursorBubble {
     this.contextLabel = null;
     this.ttsBtn = null;
     this.dragHandle = null;
-    this.taskBannerEl = null;
-    this.stepLogEl = null;
-  }
-
-  private ensureTaskBanner(): void {
-    if (!this.bubbleEl || !this.currentTask) return;
-
-    // Remove existing banner
-    if (this.taskBannerEl) this.taskBannerEl.remove();
-
-    this.taskBannerEl = document.createElement('div');
-    this.taskBannerEl.className = 'screensense-task-banner';
-    this.taskBannerEl.textContent = this.currentTask;
-
-    // Insert at the top
-    if (this.bubbleEl.firstChild) {
-      this.bubbleEl.insertBefore(this.taskBannerEl, this.bubbleEl.firstChild);
-    } else {
-      this.bubbleEl.appendChild(this.taskBannerEl);
-    }
+    this.chatHistory.clearDomRefs();
   }
 
   private sendFollowUp(): void {
@@ -1460,7 +1291,7 @@ export class CursorBubble {
     if (this.tracking) return;
     this.tracking = true;
     this.mouseMoveHandler = (e: MouseEvent) => {
-      const width = this.currentState === 'answering' ? BUBBLE_WIDTH_ANSWER : BUBBLE_WIDTH_STATUS;
+      const width = this.stateMachine.getState() === 'answering' ? BUBBLE_WIDTH_ANSWER : BUBBLE_WIDTH_STATUS;
       this.positionBubble(e.clientX, e.clientY, width);
     };
     document.addEventListener('mousemove', this.mouseMoveHandler, { passive: true });
@@ -1482,7 +1313,7 @@ export class CursorBubble {
   private positionBubble(cursorX: number, cursorY: number, bubbleWidth: number): void {
     if (!this.bubbleEl) return;
 
-    const bubbleMaxHeight = this.currentState === 'answering' ? BUBBLE_MAX_HEIGHT_ANSWER : 120;
+    const bubbleMaxHeight = this.stateMachine.getState() === 'answering' ? BUBBLE_MAX_HEIGHT_ANSWER : 120;
     const offset = CURSOR_OFFSET_Y;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -1519,7 +1350,7 @@ export class CursorBubble {
   }
 
   private startDrag(e: MouseEvent): void {
-    if (!this.bubbleEl || this.currentState !== 'answering') return;
+    if (!this.bubbleEl || this.stateMachine.getState() !== 'answering') return;
 
     this.isDragging = true;
     this.dragStartX = e.clientX;
@@ -1611,12 +1442,10 @@ export class CursorBubble {
     this.contextLabel = null;
     this.ttsBtn = null;
     this.dragHandle = null;
-    this.waveformBars = [];
+    this.waveform.cleanup();
     this.accumulatedText = '';
     this.currentTranscript = '';
-    this.currentTask = '';
-    this.completedSteps = [];
-    this.taskBannerEl = null;
-    this.currentState = 'idle';
+    this.chatHistory.cleanup();
+    this.stateMachine.reset();
   }
 }
