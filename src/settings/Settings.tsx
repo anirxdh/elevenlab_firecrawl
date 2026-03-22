@@ -142,6 +142,29 @@ const Settings: React.FC = () => {
               <p className="field-hint">Adjusts how detailed and technical the AI explanations are</p>
             </div>
 
+            <div className="field-group">
+              <label className="field-label">Voice ID</label>
+              <input
+                type="text"
+                className="text-input"
+                placeholder="ElevenLabs Voice ID"
+                value={settings.voiceId}
+                onChange={(e) => setSettings({ ...settings, voiceId: e.target.value })}
+              />
+              <p className="field-hint">Your ElevenLabs voice ID — find it in your ElevenLabs dashboard</p>
+            </div>
+
+            <div className="field-group">
+              <label className="field-label">TTS Model</label>
+              <div className="toggle-group">
+                {([['eleven_flash_v2_5', 'Flash v2.5 (fast)'], ['eleven_multilingual_v2', 'Multilingual v2']] as [string, string][]).map(([model, label]) => (
+                  <button key={model} className={`toggle-btn${settings.ttsModel === model ? ' active' : ''}`}
+                    onClick={() => setSettings({ ...settings, ttsModel: model })}>{label}</button>
+                ))}
+              </div>
+              <p className="field-hint">Flash v2.5 is faster; Multilingual v2 supports more languages</p>
+            </div>
+
             <div className="actions">
               <button onClick={handleSave} className="btn btn-primary">
                 {saved ? (

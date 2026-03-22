@@ -495,7 +495,17 @@ async function runFollowUp(tabId: number, text: string): Promise<void> {
 // ─── Message Handlers ───
 
 registerHandler('shortcut-hold', (message, sender, sendResponse) => {
-  console.log('[ScreenSense][SW] Received shortcut-hold');
+  console.log('[ScreenSense][SW] Received shortcut-hold, conversationState:', conversation.getState());
+
+  // If TTS is playing (Speaking state), interrupt it and transition to Listening
+  if (conversation.getState() === ConversationState.Speaking) {
+    const interruptTabId = sender.tab?.id ?? recordingTabId;
+    if (interruptTabId) {
+      sendToTab(interruptTabId, { action: 'interrupt-tts' });
+    }
+    conversation.transition(ConversationState.Listening);
+  }
+
   currentState = 'listening';
   recordingTabId = sender.tab?.id ?? null;
   swAmpLogged = false;
@@ -654,6 +664,37 @@ registerHandler('open-welcome', (_message, _sender, sendResponse) => {
 
 registerHandler('check-mic-permission', (_message, _sender, sendResponse) => {
   sendResponse({ ok: true });
+});
+
+registerHandler('tts-playback-finished', (_message, _sender, sendResponse) => {
+  if (conversation.getState() === ConversationState.AwaitingReply) {
+    // Wait 500ms, then auto-open mic
+    setTimeout(async () => {
+      const tabId = conversation.getActiveTabId();
+      if (!tabId) return;
+      // Show listening state in bubble
+      sendToTab(tabId, { action: 'bubble-state', state: 'listening' });
+      // Start recording
+      currentState = 'listening';
+      recordingTabId = tabId;
+      swAmpLogged = false;
+      updateToolbarIcon('recording');
+      broadcastStateChange('listening');
+      await ensureOffscreen();
+      chrome.runtime.sendMessage({ target: 'offscreen', action: 'start-recording' })
+        .catch(err => console.error('[ScreenSense] auto-reopen start-recording:', err));
+      conversation.transition(ConversationState.Listening);
+      // Auto-stop after 10 seconds of silence handled in offscreen; hard limit here
+      setTimeout(() => {
+        if (conversation.getState() === ConversationState.Listening) {
+          chrome.runtime.sendMessage({ target: 'offscreen', action: 'stop-recording' })
+            .catch(err => console.error('[ScreenSense] auto-stop recording:', err));
+        }
+      }, 10_000);
+    }, 500);
+  }
+  sendResponse({ ok: true });
+  return false;
 });
 
 // ─── Install the router ───

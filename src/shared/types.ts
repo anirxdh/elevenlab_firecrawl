@@ -19,6 +19,8 @@ export interface ExtensionSettings {
   maxRecordingMs: number; // default: 60000
   displayMode: DisplayMode; // default: 'both'
   explanationLevel: ExplanationLevel; // default: 'college'
+  voiceId: string; // default: DEFAULT_VOICE_ID
+  ttsModel: string; // default: DEFAULT_TTS_MODEL
 }
 
 export type ExtensionState = 'idle' | 'listening' | 'processing';
@@ -148,4 +150,6 @@ export type MessageType =
   | { action: 'offscreen-error'; error: string }
   | { action: 'offscreen-ready' }
   | { action: 'offscreen-started' }
-  | { action: 'elevenlabs-tts'; voiceId: string; text: string; apiKey: string; modelId: string };
+  | { action: 'elevenlabs-tts'; voiceId: string; text: string; apiKey: string; modelId: string }
+  | { action: 'interrupt-tts' }
+  | { action: 'tts-playback-finished' };

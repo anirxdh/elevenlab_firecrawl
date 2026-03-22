@@ -13,6 +13,11 @@ let chunks: Blob[] = [];
 let stopped = false;
 let amplitudeInterval: ReturnType<typeof setInterval> | null = null;
 
+// Silence detection
+let silentSamples = 0;
+const SILENCE_THRESHOLD = 0.02;
+const SILENCE_DURATION_SAMPLES = 30; // ~1.5s at 50ms polling
+
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -30,6 +35,7 @@ async function startRecording(): Promise<void> {
   console.log('[ScreenSense][offscreen] startRecording called');
   stopped = false;
   chunks = [];
+  silentSamples = 0;
 
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -82,6 +88,19 @@ async function startRecording(): Promise<void> {
     }
     // Send as regular array (Uint8Array doesn't serialize well in chrome messages)
     chrome.runtime.sendMessage({ action: 'offscreen-amplitude', data: arr }).catch((err) => console.error('[ScreenSense] amplitude send:', err));
+
+    // Silence detection — auto-stop after ~1.5s of continuous silence
+    const maxAmplitude = Math.max(...arr) / 255;
+    if (maxAmplitude < SILENCE_THRESHOLD) {
+      silentSamples++;
+      if (silentSamples >= SILENCE_DURATION_SAMPLES) {
+        console.log('[ScreenSense][offscreen] Silence detected, auto-stopping recording');
+        stopRecording();
+        return;
+      }
+    } else {
+      silentSamples = 0;
+    }
   }, 50);
 
   chrome.runtime.sendMessage({ action: 'offscreen-started' }).catch((err) => console.error('[ScreenSense] offscreen-started send:', err));

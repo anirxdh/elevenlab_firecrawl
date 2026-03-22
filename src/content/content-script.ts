@@ -1,7 +1,7 @@
 import './content.css';
 import { initShortcutHandler } from './shortcut-handler';
 import { CursorBubble } from './cursor-bubble';
-import { stop as stopTts } from './tts';
+import { stop as stopTts, interrupt as interruptTts } from './tts';
 import { scrapeDom } from './dom-scraper';
 import { executeAction } from './action-executor';
 
@@ -131,6 +131,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   // Handle cancel-agent-loop — service worker sets the cancel flag
   if (message.action === 'cancel-agent-loop') {
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  // Handle interrupt-tts — stop playback and notify callback
+  if (message.action === 'interrupt-tts') {
+    interruptTts();
     sendResponse({ ok: true });
     return false;
   }

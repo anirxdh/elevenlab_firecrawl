@@ -2,15 +2,13 @@
  * Text-to-Speech module using ElevenLabs API.
  * Falls back to Web Speech API if no API key is configured.
  */
-import { getApiKeys } from '../shared/storage';
+import { getApiKeys, getSettings } from '../shared/storage';
 import { DEFAULT_VOICE_ID, DEFAULT_TTS_MODEL } from '../shared/constants';
-
-const ELEVENLABS_VOICE_ID = DEFAULT_VOICE_ID; // Rachel — natural, clear
-const ELEVENLABS_MODEL = DEFAULT_TTS_MODEL;
 
 let enabled = true;
 let currentAudio: HTMLAudioElement | null = null;
 let currentUtterance: SpeechSynthesisUtterance | null = null;
+let onInterruptCallback: (() => void) | null = null;
 
 export function setTtsEnabled(value: boolean): void {
   enabled = value;
@@ -19,6 +17,15 @@ export function setTtsEnabled(value: boolean): void {
 
 export function isTtsEnabled(): boolean {
   return enabled;
+}
+
+/** Read voice settings dynamically from user settings */
+async function getVoiceConfig(): Promise<{ voiceId: string; model: string }> {
+  const settings = await getSettings();
+  return {
+    voiceId: settings.voiceId || DEFAULT_VOICE_ID,
+    model: settings.ttsModel || DEFAULT_TTS_MODEL,
+  };
 }
 
 /** Strip markdown for cleaner speech */
@@ -34,6 +41,7 @@ function cleanForSpeech(text: string): string {
 /** ElevenLabs TTS — routes through service worker to avoid page CSP blocking */
 async function speakElevenLabs(text: string, apiKey: string): Promise<void> {
   const clean = cleanForSpeech(text);
+  const { voiceId, model } = await getVoiceConfig();
 
   try {
     // Send to service worker which has unrestricted network access
@@ -43,8 +51,8 @@ async function speakElevenLabs(text: string, apiKey: string): Promise<void> {
           action: 'elevenlabs-tts',
           text: clean,
           apiKey,
-          voiceId: ELEVENLABS_VOICE_ID,
-          modelId: ELEVENLABS_MODEL,
+          voiceId,
+          modelId: model,
         },
         (resp) => resolve(resp || { ok: false, error: 'No response' })
       );
@@ -69,6 +77,8 @@ async function speakElevenLabs(text: string, apiKey: string): Promise<void> {
     currentAudio.addEventListener('ended', () => {
       URL.revokeObjectURL(audioUrl);
       currentAudio = null;
+      chrome.runtime.sendMessage({ action: 'tts-playback-finished' })
+        .catch(err => console.error('[ScreenSense] tts-finished send:', err));
     });
     currentAudio.play();
   } catch (err) {
@@ -90,6 +100,12 @@ function speakWebSpeech(text: string): void {
     (v) => v.name.includes('Samantha') || v.name.includes('Google US English') || v.name.includes('Daniel')
   );
   if (preferred) utterance.voice = preferred;
+
+  utterance.addEventListener('end', () => {
+    currentUtterance = null;
+    chrome.runtime.sendMessage({ action: 'tts-playback-finished' })
+      .catch(err => console.error('[ScreenSense] tts-finished send:', err));
+  });
 
   currentUtterance = utterance;
   speechSynthesis.speak(utterance);
@@ -130,4 +146,15 @@ export function stop(): void {
 
 export function isSpeaking(): boolean {
   return !!(currentAudio && !currentAudio.paused) || speechSynthesis.speaking;
+}
+
+export function onInterrupt(cb: () => void): void {
+  onInterruptCallback = cb;
+}
+
+export function interrupt(): void {
+  if (isSpeaking()) {
+    stop();
+    onInterruptCallback?.();
+  }
 }
