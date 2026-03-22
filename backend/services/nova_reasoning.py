@@ -114,18 +114,29 @@ def _truncate_dom(dom_snapshot: dict) -> dict:
 
 def _get_bedrock_client():
     """Create a Bedrock Runtime client using AWS credentials from environment."""
+    key = os.getenv("AWS_ACCESS_KEY_ID", "")
+    secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    placeholders = {"your-key-here", "your-aws-access-key", "your-aws-secret-key", ""}
+
+    if not key or key in placeholders or not secret or secret in placeholders:
+        raise ValueError(
+            "AWS credentials not configured — set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in backend/.env"
+        )
+
     try:
         client = boto3.client(
             "bedrock-runtime",
             region_name=os.getenv("AWS_REGION", "us-east-1"),
-            aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+            aws_access_key_id=key,
+            aws_secret_access_key=secret,
         )
         return client
     except (NoCredentialsError, PartialCredentialsError) as e:
         raise ValueError(
             "AWS credentials not configured — set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in backend/.env"
         ) from e
+    except Exception as e:
+        raise ValueError(f"Failed to create Bedrock client: {e}") from e
 
 
 CONTINUE_SYSTEM_PROMPT = """You are ScreenSense, a screen-aware AI execution agent in a Chrome extension.
@@ -292,10 +303,12 @@ def _call_nova(system_prompt: str, user_content: list[dict]) -> str:
     except ClientError as e:
         error_code = e.response["Error"]["Code"]
         error_msg = e.response["Error"]["Message"]
+        if "AccessDenied" in error_code:
+            raise ValueError(f"Access denied — {error_msg} (check IAM permissions for Bedrock)") from e
         raise ValueError(f"Bedrock API error ({error_code}): {error_msg}") from e
     except (NoCredentialsError, PartialCredentialsError) as e:
         raise ValueError(
-            "AWS credentials not configured — set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in backend/.env"
+            "AWS credentials are invalid or incomplete — set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in backend/.env"
         ) from e
 
 
@@ -320,6 +333,12 @@ def reason_about_page(
         - {"type": "answer", "text": "..."} for questions
         - {"type": "steps", "actions": [...]} for task commands
     """
+    # Validate screenshot before processing
+    try:
+        base64.b64decode(screenshot_base64)
+    except Exception:
+        raise ValueError("Invalid screenshot: could not decode base64 data")
+
     compressed = _compress_screenshot(screenshot_base64)
     # Decode compressed base64 back to raw bytes for Bedrock
     screenshot_bytes = base64.b64decode(compressed)
@@ -371,6 +390,8 @@ def reason_about_page(
             return {"type": "answer", "text": response_text}
         return {"type": "answer", "text": response_text}
 
+    except ValueError:
+        raise
     except Exception as e:
         raise ValueError(f"Reasoning failed: {e}") from e
 
@@ -384,6 +405,12 @@ def reason_continue(
     conversation_history: list[dict] | None = None,
 ) -> dict:
     """Continue reasoning about a multi-step task after actions have been taken."""
+    # Validate screenshot before processing
+    try:
+        base64.b64decode(screenshot_base64)
+    except Exception:
+        raise ValueError("Invalid screenshot: could not decode base64 data")
+
     # Compress action history for long chains
     if len(action_history) > 5:
         older = action_history[:-3]
@@ -461,5 +488,7 @@ def reason_continue(
             return {"type": "done", "summary": response_text}
         return {"type": "done", "summary": response_text}
 
+    except ValueError:
+        raise
     except Exception as e:
         raise ValueError(f"Continue reasoning failed: {e}") from e

@@ -9,12 +9,12 @@ def test_health_returns_200(client):
 
 
 def test_all_expected_routes_exist(client):
-    """All core routes (/health, /task, /events) must be registered.
-    Note: /transcribe was removed — STT is now frontend-direct via ElevenLabs/Groq."""
+    """All core routes must be registered."""
     from backend.main import app
 
     route_paths = {route.path for route in app.routes}
-    expected = {"/health", "/task", "/events"}
+    expected = {"/health", "/task", "/task/continue", "/events",
+                "/transcribe", "/firecrawl/scrape", "/firecrawl/extract"}
     for path in expected:
         assert path in route_paths, f"Expected route {path} not found in app routes"
 

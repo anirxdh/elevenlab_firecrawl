@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError, NoCredentialsError, PartialCredenti
 
 from backend.services.nova_reasoning import (
     CONTINUE_SYSTEM_PROMPT,
+    CONVERSATIONAL_ADDENDUM,
     SYSTEM_PROMPT,
     _extract_json,
     reason_about_page,
@@ -254,7 +255,8 @@ class TestReasonAboutPage:
         call_kwargs = mock_client.converse.call_args
         system_arg = call_kwargs.kwargs["system"]
         assert len(system_arg) == 1
-        assert system_arg[0]["text"] == SYSTEM_PROMPT
+        assert system_arg[0]["text"].startswith(SYSTEM_PROMPT)
+        assert CONVERSATIONAL_ADDENDUM in system_arg[0]["text"]
 
     @patch("backend.services.nova_reasoning.boto3")
     def test_converse_call_sends_three_content_blocks(self, mock_boto3):
@@ -351,7 +353,7 @@ class TestReasonAboutPageClientErrors:
         error_response = {
             "Error": {
                 "Code": "AccessDeniedException",
-                "Message": "User is not authorized to invoke Bedrock",
+                "Message": "Access denied for Bedrock",
             }
         }
         mock_client.converse.side_effect = ClientError(error_response, "Converse")
@@ -534,7 +536,8 @@ class TestReasonContinue:
 
         call_kwargs = mock_client.converse.call_args
         system_arg = call_kwargs.kwargs["system"]
-        assert system_arg[0]["text"] == CONTINUE_SYSTEM_PROMPT
+        assert system_arg[0]["text"].startswith(CONTINUE_SYSTEM_PROMPT)
+        assert CONVERSATIONAL_ADDENDUM in system_arg[0]["text"]
 
     @patch("backend.services.nova_reasoning.boto3")
     def test_empty_action_history_formats_correctly(self, mock_boto3):
