@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ScreenSense Voice — AI Browser Agent Powered by Amazon Nova</title>
+  <link rel="icon" href="logo.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset & Base ─── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #0D1117;
+      --bg-card: rgba(255, 255, 255, 0.03);
+      --bg-card-hover: rgba(255, 255, 255, 0.06);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(255, 153, 0, 0.35);
+      --text-primary: #F1F5F9;
+      --text-secondary: rgba(200, 210, 220, 0.6);
+      --text-muted: rgba(180, 190, 200, 0.4);
+      --accent: #FF9900;
+      --accent-light: #FFB84D;
+      --accent-glow: rgba(255, 153, 0, 0.15);
+      --teal: #00A8E1;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #FAFAFA;
+      --bg-card: rgba(0, 0, 0, 0.03);
+      --bg-card-hover: rgba(0, 0, 0, 0.06);
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-accent: rgba(232, 139, 0, 0.35);
+      --text-primary: #1A1A2E;
+      --text-secondary: rgba(26, 26, 46, 0.55);
+      --text-muted: rgba(26, 26, 46, 0.35);
+      --accent: #E88B00;
+      --accent-light: #FF9900;
+      --accent-glow: rgba(255, 153, 0, 0.1);
+      --teal: #0077B6;
+    }
+
+    [data-theme="light"] body { color: #1A1A2E; }
+    [data-theme="light"] nav { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); border-bottom-color: rgba(0,0,0,0.06); }
+    [data-theme="light"] .nav-brand span { color: #1A1A2E; }
+    [data-theme="light"] .nav-links a { color: rgba(26,26,46,0.65); }
+    [data-theme="light"] .nav-links a:hover { color: #1A1A2E; }
+    [data-theme="light"] .nav-cta { color: #fff !important; background: linear-gradient(135deg, #E88B00, #FF9900); border-color: transparent; }
+    [data-theme="light"] .hero h1 { color: #1A1A2E; }
+    [data-theme="light"] .hero-sub { color: rgba(26,26,46,0.6); }
+    [data-theme="light"] .section-title { color: #1A1A2E; }
+    [data-theme="light"] .step h3 { color: #1A1A2E; }
+    [data-theme="light"] .step p { color: rgba(26,26,46,0.6); }
+    [data-theme="light"] .feature-card h3 { color: #1A1A2E; }
+    [data-theme="light"] .feature-card p { color: rgba(26,26,46,0.55); }
+    /* Light theme — particles & orbs */
+    [data-theme="light"] .ambient-orb { opacity: 0.15; filter: blur(100px); }
+    [data-theme="light"] .ambient-orb.orb-1 { background: radial-gradient(circle, rgba(255,153,0,0.12), transparent); }
+    [data-theme="light"] .ambient-orb.orb-2 { background: radial-gradient(circle, rgba(255,184,77,0.1), transparent); }
+    [data-theme="light"] .ambient-orb.orb-3 { background: radial-gradient(circle, rgba(232,139,0,0.08), transparent); }
+    [data-theme="light"] canvas { opacity: 0.7; }
+
+    /* Light theme — cards & sections */
+    [data-theme="light"] .hero-demo { box-shadow: 0 20px 60px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05); }
+    [data-theme="light"] .demo-window { background: rgba(240,242,245,0.95); border-color: rgba(0,0,0,0.08); box-shadow: 0 20px 60px rgba(0,0,0,0.08); }
+    [data-theme="light"] .demo-titlebar { background: rgba(0,0,0,0.03); border-bottom-color: rgba(0,0,0,0.06); }
+    [data-theme="light"] .video-window { background: rgba(240,242,245,0.95); border-color: rgba(0,0,0,0.08); }
+    [data-theme="light"] .feature-card { background: rgba(255,255,255,0.7); border-color: rgba(0,0,0,0.06); box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
+    [data-theme="light"] .feature-card:hover { background: rgba(255,255,255,0.9); border-color: rgba(232,139,0,0.2); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+    [data-theme="light"] .step { background: rgba(255,255,255,0.6); border-color: rgba(0,0,0,0.06); }
+    [data-theme="light"] .step:hover { background: rgba(255,255,255,0.85); border-color: rgba(232,139,0,0.2); }
+    [data-theme="light"] .step-number { background: linear-gradient(135deg, #E88B00, #FF9900); color: #fff; }
+    [data-theme="light"] .hero-badge { background: rgba(232,139,0,0.08); border-color: rgba(232,139,0,0.2); color: #8B5E00; }
+    [data-theme="light"] .hero-badge::before { background: #E88B00; }
+    [data-theme="light"] .key-vis { background: rgba(232,139,0,0.1); border-color: rgba(232,139,0,0.25); color: #B06C00; }
+
+    /* Light theme — buttons */
+    [data-theme="light"] .btn-primary { background: linear-gradient(135deg, #E88B00, #FF9900); }
+    [data-theme="light"] .btn-secondary { border-color: rgba(0,0,0,0.12); color: #1A1A2E; }
+    [data-theme="light"] .btn-secondary:hover { border-color: rgba(232,139,0,0.3); background: rgba(232,139,0,0.06); }
+    [data-theme="light"] .nav-cta { background: linear-gradient(135deg, #E88B00, #FF9900); }
+
+    /* Light theme — CTA section */
+    [data-theme="light"] .cta-section { background: linear-gradient(135deg, rgba(232,139,0,0.06), rgba(255,153,0,0.03)); }
+    [data-theme="light"] .cta-section h2 { color: #1A1A2E; }
+    [data-theme="light"] .cta-section p { color: rgba(26,26,46,0.6); }
+
+    /* Light theme — dividers & misc */
+    [data-theme="light"] .section-divider { background: linear-gradient(90deg, transparent, rgba(0,0,0,0.06), transparent); }
+    [data-theme="light"] .walkthrough-container { box-shadow: 0 20px 60px rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.06); }
+
+    /* Light theme — footer */
+    [data-theme="light"] footer { border-top-color: rgba(0,0,0,0.06); }
+    [data-theme="light"] .footer-brand { color: #1A1A2E; }
+    [data-theme="light"] .footer-text { color: rgba(26,26,46,0.4); }
+    [data-theme="light"] .footer-links a { color: rgba(26,26,46,0.4); }
+    [data-theme="light"] .footer-links a:hover { color: #E88B00; }
+
+    /* Light theme — explanation levels */
+    [data-theme="light"] .level-card { background: rgba(255,255,255,0.7); border-color: rgba(0,0,0,0.06); }
+    [data-theme="light"] .level-card:hover { background: rgba(255,255,255,0.9); }
+    [data-theme="light"] .level-label { color: #1A1A2E; }
+    [data-theme="light"] .level-example { color: rgba(26,26,46,0.6); }
+    [data-theme="light"] .level-response { background: rgba(255,255,255,0.8); border-color: rgba(0,0,0,0.08); color: #1A1A2E; backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+    [data-theme="light"] .level-response .level-tag { background: rgba(232,139,0,0.1); color: #B06C00; }
+    [data-theme="light"] .level-pill { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.06); color: rgba(26,26,46,0.5); }
+    [data-theme="light"] .level-pill:hover, [data-theme="light"] .level-pill.active { background: rgba(232,139,0,0.08); border-color: rgba(232,139,0,0.25); color: #B06C00; }
+
+    /* Theme toggle button */
+    .theme-toggle {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 8px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .theme-toggle:hover {
+      background: rgba(255, 153, 0, 0.15);
+      border-color: rgba(255, 153, 0, 0.3);
+      color: var(--accent);
+    }
+    [data-theme="light"] .theme-toggle {
+      background: rgba(0,0,0,0.04);
+      border-color: rgba(0,0,0,0.1);
+      color: rgba(26,26,46,0.5);
+    }
+    [data-theme="light"] .theme-toggle:hover {
+      background: rgba(232,139,0,0.1);
+      color: #E88B00;
+    }
+    .theme-icon-moon { display: none; }
+    [data-theme="light"] .theme-icon-sun { display: none; }
+    [data-theme="light"] .theme-icon-moon { display: block; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ─── Particle Canvas ─── */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ─── Ambient Background ─── */
+    .ambient {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .ambient-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.5;
+    }
+
+    .orb-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(232, 139, 0, 0.14), transparent);
+      top: -200px; left: -200px;
+      animation: orbDrift1 20s ease-in-out infinite;
+    }
+
+    .orb-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(255, 153, 0, 0.1), transparent);
+      top: 40%; right: -150px;
+      animation: orbDrift2 25s ease-in-out infinite;
+    }
+
+    .orb-3 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(255, 184, 77, 0.08), transparent);
+      bottom: 10%; left: 30%;
+      animation: orbDrift3 18s ease-in-out infinite;
+    }
+
+    @keyframes orbDrift1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(80px, 60px); } }
+    @keyframes orbDrift2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-60px, -40px); } }
+    @keyframes orbDrift3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(50px, -50px); } }
+
+    /* ─── Nav ─── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 20px 0;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(1, 22, 32, 0.7);
+      border-bottom: 1px solid var(--border-subtle);
+      transition: all 0.3s ease;
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .nav-brand span {
+      background: linear-gradient(135deg, var(--accent-light), var(--teal));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.7);
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: #fff; }
+
+    .nav-cta {
+      padding: 10px 24px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(232, 139, 0, 0.2), rgba(255, 153, 0, 0.2));
+      border: 1px solid var(--border-accent);
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff !important;
+      transition: all 0.3s ease;
+    }
+
+    .nav-cta:hover {
+      background: linear-gradient(135deg, rgba(232, 139, 0, 0.3), rgba(255, 153, 0, 0.3));
+      transform: translateY(-1px);
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      padding: 180px 0 120px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 100px;
+      background: var(--accent-glow);
+      border: 1px solid var(--border-accent);
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 32px;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .hero h1 {
+      font-size: clamp(48px, 7vw, 80px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      margin-bottom: 24px;
+      animation: fadeUp 0.8s ease 0.1s both;
+    }
+
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent-light), var(--accent), var(--teal));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 20px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 48px;
+      line-height: 1.7;
+      font-weight: 400;
+      animation: fadeUp 0.8s ease 0.2s both;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 80px;
+      animation: fadeUp 0.8s ease 0.3s both;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 32px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #E88B00, #FF9900);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 24px rgba(255, 153, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(255, 153, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-primary:hover::after { opacity: 1; }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 32px;
+      border-radius: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.12);
+      color: var(--text-primary);
+    }
+
+    /* ─── Hero Demo ─── */
+    .hero-demo {
+      position: relative;
+      max-width: 900px;
+      margin: 0 auto;
+      animation: fadeUp 1s ease 0.4s both;
+    }
+
+    .demo-window {
+      background: rgba(2, 30, 44, 0.8);
+      border-radius: 20px;
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 120px rgba(255, 153, 0, 0.06);
+    }
+
+    .demo-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .demo-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+
+    .demo-dot:nth-child(1) { background: #ff5f57; }
+    .demo-dot:nth-child(2) { background: #febc2e; }
+    .demo-dot:nth-child(3) { background: #28c840; }
+
+    .demo-video-wrap {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .demo-video-wrap video {
+      width: 100%;
+      display: block;
+      border-radius: 0 0 18px 18px;
+    }
+
+    .demo-content {
+      padding: 40px;
+      min-height: 400px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .demo-page-mock {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mock-line {
+      height: 12px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .mock-line:nth-child(1) { width: 70%; }
+    .mock-line:nth-child(2) { width: 100%; }
+    .mock-line:nth-child(3) { width: 85%; }
+    .mock-line:nth-child(4) { width: 55%; height: 10px; margin-top: 8px; }
+    .mock-line:nth-child(5) { width: 95%; height: 10px; }
+    .mock-line:nth-child(6) { width: 75%; height: 10px; }
+
+    /* Overlay mockup */
+    .demo-overlay {
+      position: absolute;
+      right: 40px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 320px;
+      padding: 16px 20px;
+      border-radius: 16px;
+      background: rgba(2, 30, 44, 0.9);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 13px;
+      line-height: 1.5;
+      animation: overlayPulse 4s ease-in-out infinite;
+    }
+
+    .demo-overlay-q {
+      font-size: 12px;
+      color: rgba(255, 184, 77, 0.7);
+      font-style: italic;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .demo-overlay-a {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .demo-overlay-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .demo-overlay-input {
+      flex: 1;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .demo-overlay-send {
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: rgba(255, 153, 0, 0.2);
+      border: 1px solid rgba(255, 153, 0, 0.3);
+      color: rgba(255, 184, 77, 0.9);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    @keyframes overlayPulse {
+      0%, 100% { box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 0 rgba(255, 153, 0, 0); }
+      50% { box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 40px rgba(255, 153, 0, 0.06); }
+    }
+
+    /* Waveform indicator on demo */
+    .demo-waveform {
+      position: absolute;
+      left: 40px;
+      bottom: 40px;
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      padding: 8px 14px;
+      border-radius: 12px;
+      background: rgba(2, 30, 44, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .demo-waveform .wbar {
+      width: 3px;
+      border-radius: 2px;
+      background: var(--accent-light);
+      animation: waveBar 1.2s ease-in-out infinite;
+    }
+
+    .demo-waveform .wbar:nth-child(1)  { height: 6px;  animation-delay: 0s; }
+    .demo-waveform .wbar:nth-child(2)  { height: 12px; animation-delay: 0.1s; }
+    .demo-waveform .wbar:nth-child(3)  { height: 18px; animation-delay: 0.15s; }
+    .demo-waveform .wbar:nth-child(4)  { height: 10px; animation-delay: 0.2s; }
+    .demo-waveform .wbar:nth-child(5)  { height: 22px; animation-delay: 0.25s; }
+    .demo-waveform .wbar:nth-child(6)  { height: 14px; animation-delay: 0.3s; }
+    .demo-waveform .wbar:nth-child(7)  { height: 8px;  animation-delay: 0.35s; }
+    .demo-waveform .wbar:nth-child(8)  { height: 16px; animation-delay: 0.4s; }
+
+    @keyframes waveBar {
+      0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+      50%      { transform: scaleY(1);   opacity: 1; }
+    }
+
+    /* ─── Section Shared ─── */
+    section {
+      position: relative;
+      z-index: 1;
+      padding: 120px 0;
+    }
+
+    .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .section-label::before {
+      content: '';
+      width: 24px; height: 1px;
+      background: var(--accent);
+    }
+
+    .section-title {
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      font-size: 18px;
+      color: var(--text-secondary);
+      max-width: 520px;
+      line-height: 1.7;
+    }
+
+    /* ─── How It Works ─── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 64px;
+    }
+
+    .step {
+      padding: 36px 32px;
+      border-radius: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .step::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .step:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-4px);
+    }
+
+    .step:hover::before { opacity: 1; }
+
+    .step-number {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      background: var(--accent-glow);
+      border: 1px solid var(--border-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent-light);
+      margin-bottom: 24px;
+    }
+
+    .step-icon {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .step h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .step p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ─── Features ─── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-top: 64px;
+    }
+
+    .feature-card {
+      padding: 36px 32px;
+      border-radius: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .feature-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .feature-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .feature-icon.teal    { background: rgba(255, 153, 0, 0.12); border: 1px solid rgba(255, 153, 0, 0.25); }
+    .feature-icon.cyan    { background: rgba(255, 153, 0, 0.12); border: 1px solid rgba(255, 153, 0, 0.25); }
+    .feature-icon.blue    { background: rgba(0, 168, 225, 0.12); border: 1px solid rgba(0, 168, 225, 0.25); }
+    .feature-icon.emerald { background: rgba(48, 209, 88, 0.12); border: 1px solid rgba(48, 209, 88, 0.2); }
+
+    .feature-card h3 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature-card p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* ─── Levels showcase ─── */
+    .levels-section {
+      text-align: center;
+    }
+
+    .levels-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 48px;
+      flex-wrap: wrap;
+    }
+
+    .level-pill {
+      padding: 14px 28px;
+      border-radius: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .level-pill:hover, .level-pill.active {
+      background: var(--accent-glow);
+      border-color: var(--border-accent);
+      color: var(--accent-light);
+    }
+
+    .level-response {
+      max-width: 640px;
+      margin: 32px auto 0;
+      padding: 28px 32px;
+      border-radius: 16px;
+      background: rgba(2, 30, 44, 0.6);
+      border: 1px solid var(--border-subtle);
+      text-align: left;
+      font-size: 15px;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.8);
+      min-height: 100px;
+      transition: all 0.3s ease;
+    }
+
+    .level-response .level-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: var(--accent-glow);
+    }
+
+    /* ─── Walkthrough Video ─── */
+    .walkthrough-section {
+      text-align: center;
+    }
+
+    .video-card {
+      max-width: 820px;
+      margin: 48px auto 0;
+    }
+
+    .video-window {
+      border-radius: 20px;
+      border: 1px solid var(--border-subtle);
+      overflow: hidden;
+      background: rgba(2, 30, 44, 0.8);
+      box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4), 0 0 80px rgba(255, 153, 0, 0.05);
+    }
+
+    .video-wrap {
+      position: relative;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    .video-wrap video {
+      width: 100%;
+      display: block;
+    }
+
+    .video-play-btn {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      z-index: 2;
+    }
+
+    .video-play-btn:hover {
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+
+    .video-play-btn.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ─── CTA Section ─── */
+    .cta-section {
+      text-align: center;
+      padding: 100px 0 120px;
+    }
+
+    .cta-card {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 48px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, rgba(232, 139, 0, 0.08), rgba(255, 153, 0, 0.05));
+      border: 1px solid var(--border-accent);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-card::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: 20%; right: 20%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    .cta-card h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .cta-card p {
+      font-size: 17px;
+      color: var(--text-secondary);
+      margin-bottom: 36px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.7;
+    }
+
+    .cta-note {
+      margin-top: 32px;
+      padding: 20px 28px;
+      border-radius: 14px;
+      background: rgba(255, 153, 0, 0.06);
+      border: 1px solid rgba(255, 153, 0, 0.15);
+      text-align: left;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-note strong {
+      color: var(--text-primary);
+      font-size: 14px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .cta-note p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.7;
+    }
+
+    .cta-note a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .cta-note a:hover {
+      text-decoration: underline;
+    }
+
+    /* ─── Footer ─── */
+    footer {
+      position: relative;
+      z-index: 1;
+      padding: 40px 0;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+
+    .footer-brand img {
+      width: 24px; height: 24px;
+      border-radius: 6px;
+    }
+
+    .footer-text {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ─── Divider ─── */
+    .section-divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-subtle), transparent);
+    }
+
+    /* ─── Animations ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── Keyboard shortcut visual ─── */
+    .key-vis {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-light);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      .hero { padding: 140px 0 80px; }
+
+      .hero-actions {
+        flex-direction: column;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .demo-overlay {
+        position: relative;
+        right: auto;
+        top: auto;
+        transform: none;
+        width: 100%;
+        margin-top: 24px;
+      }
+
+      .demo-waveform {
+        display: none;
+      }
+
+      .nav-links { display: none; }
+
+      footer .container {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Animated particle canvas -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- Ambient Background -->
+  <div class="ambient">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
+  </div>
+
+  <!-- Nav -->
+  <nav>
+    <div class="container">
+      <a href="#" class="nav-brand">
+        <img src="logo.png" alt="ScreenSense" />
+        <span>ScreenSense</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#how-it-works">How it Works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#walkthrough">Walkthrough</a></li>
+        <li>
+          <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <svg class="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        </li>
+        <li><a href="#cta" class="nav-cta">Install Extension</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge">Powered by Amazon Nova</div>
+      <h1>Your voice controls<br/>the browser.<span class="gradient"> Nova AI executes.</span></h1>
+      <p class="hero-sub">
+        Speak a command, and Nova AI sees your screen, reasons about what to do, and executes actions autonomously. Search Amazon, fill forms, navigate sites — all by voice. Powered by Amazon Nova 2 Lite multimodal reasoning.
+      </p>
+      <div class="hero-actions">
+        <a class="btn-primary" href="https://github.com/anirxdh/Nova-AWS" target="_blank" rel="noopener noreferrer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          Install Free
+        </a>
+        <button class="btn-secondary" onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})">
+          See how it works
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+      <!-- Demo Window -->
+      <div class="hero-demo">
+        <div class="demo-window">
+          <div class="demo-titlebar">
+            <div class="demo-dot"></div>
+            <div class="demo-dot"></div>
+            <div class="demo-dot"></div>
+          </div>
+          <div class="demo-video-wrap">
+            <video autoplay loop muted playsinline preload="auto">
+              <source src="ffn-demo.mp4" type="video/mp4" />
+            </video>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- How It Works -->
+  <section id="how-it-works">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-label">How it works</div>
+        <h2 class="section-title">Speak. Nova acts.</h2>
+        <p class="section-sub">No tab switching, no copy-pasting, no context loss. Just hold, ask, and understand.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-number">1</div>
+          <h3>Hold <span class="key-vis">`</span></h3>
+          <p>Press and hold the shortcut key anywhere on any webpage. A waveform appears — you're live.</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-number">2</div>
+          <h3>Give a command</h3>
+          <p>"Add Quest protein bars to my Amazon cart." "Search YouTube for coding tutorials." "Scroll down and find the cheapest option."</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-number">3</div>
+          <h3>ScreenSense executes</h3>
+          <p>Nova AI sees your screen, reasons about what to do, and clicks, types, navigates — autonomously completing your task step by step.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- Walkthrough Video -->
+  <section id="walkthrough" class="walkthrough-section">
+    <div class="container">
+      <div class="reveal" style="text-align:center;">
+        <div class="section-label" style="justify-content:center;">Walkthrough</div>
+        <h2 class="section-title">Set up in 30 seconds</h2>
+        <p class="section-sub" style="margin-left:auto;margin-right:auto;">
+          Watch how to install, configure, and start talking to your screen.
+        </p>
+      </div>
+
+      <div class="video-card reveal">
+        <div class="video-window">
+          <div class="demo-titlebar">
+            <div class="demo-dot"></div>
+            <div class="demo-dot"></div>
+            <div class="demo-dot"></div>
+          </div>
+          <div class="video-wrap">
+            <video id="walkthrough-video" autoplay loop muted playsinline preload="auto">
+              <source src="2-nova.mp4" type="video/mp4" />
+            </video>
+            <!-- autoplay loop, no play button needed -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-label">Features</div>
+        <h2 class="section-title">Built with<br/>Amazon Nova</h2>
+        <p class="section-sub">Powerful when you need it, invisible when you don't.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon teal">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3>Nova 2 Lite Reasoning</h3>
+          <p>Multimodal AI sees your screenshot + DOM structure. Understands page context, identifies elements, and plans actions with chain-of-thought reasoning.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon cyan">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FF9900" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </div>
+          <h3>Voice-First Control</h3>
+          <p>Hold backtick, speak naturally. Amazon Transcribe converts speech to text, then Nova decides and acts on your behalf.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00A8E1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          </div>
+          <h3>Autonomous Agent Loop</h3>
+          <p>After each action, Nova re-captures the screen, re-scrapes the DOM, and decides the next step. Loops up to 25 iterations until your task is complete.</p>
+        </div>
+
+        <div class="feature-card reveal">
+          <div class="feature-icon emerald">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#30D158" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <h3>Smart Error Recovery</h3>
+          <p>Failed selectors? Nova retries with fresh DOM. Navigation mid-task? Waits for reload and continues. Element highlighting shows exactly what's being clicked.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- Explanation Levels -->
+  <section id="levels" class="levels-section">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-label" style="justify-content:center;">Explanation Levels</div>
+        <h2 class="section-title">Same question,<br/>different depth</h2>
+        <p class="section-sub" style="margin-left:auto;margin-right:auto;">
+          Ask "What is an API?" and watch the answer adapt to who's asking.
+        </p>
+      </div>
+
+      <div class="levels-row reveal">
+        <div class="level-pill active" data-level="kid">Kid</div>
+        <div class="level-pill" data-level="school">Student</div>
+        <div class="level-pill" data-level="college">College</div>
+        <div class="level-pill" data-level="phd">PhD</div>
+        <div class="level-pill" data-level="executive">Executive</div>
+      </div>
+
+      <div class="level-response reveal" id="level-response">
+        <div class="level-tag">Kid Mode</div>
+        <div id="level-text">An API is like a waiter at a restaurant! You tell the waiter what you want, the waiter goes to the kitchen, and brings back your food. The API takes your request to the computer and brings back the answer!</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- CTA -->
+  <section id="cta" class="cta-section">
+    <div class="container">
+      <div class="cta-card reveal">
+        <h2>Ready to let Nova<br/>do the work?</h2>
+        <p>Install ScreenSense Voice for free. Speak a command on any website — Nova AI handles the rest.</p>
+        <a class="btn-primary" href="https://github.com/anirxdh/Nova-AWS" target="_blank" rel="noopener noreferrer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          Clone from GitHub
+        </a>
+        <div class="cta-note">
+          <strong>How to get started:</strong>
+          <p>Clone the repo, run <code>npm install && npm run build</code>, then load the <code>dist/</code> folder into <code>chrome://extensions</code> with Developer Mode enabled. Follow the <a href="https://github.com/anirxdh/Nova-AWS#setup-guide-step-by-step" target="_blank" rel="noopener noreferrer">README setup guide</a> for detailed steps.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-brand">
+        <img src="logo.png" alt="ScreenSense" />
+        ScreenSense Voice
+      </div>
+      <div class="footer-text">Built for Amazon Nova Hackathon 2026 · Powered by Amazon Nova 2 Lite + Amazon Transcribe</div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // ─── Theme toggle ───
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('screensense-theme', next);
+      if (window._recreateParticles) window._recreateParticles();
+    }
+    // Load saved theme
+    (function() {
+      const saved = localStorage.getItem('screensense-theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    })();
+
+    // ─── Scroll reveal ───
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('visible'), i * 80);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    reveals.forEach(el => observer.observe(el));
+
+    // ─── Level switcher ───
+    const levels = {
+      kid: {
+        tag: 'Kid Mode',
+        text: 'An API is like a waiter at a restaurant! You tell the waiter what you want, the waiter goes to the kitchen, and brings back your food. The API takes your request to the computer and brings back the answer!'
+      },
+      school: {
+        tag: 'Student Mode',
+        text: 'An API (Application Programming Interface) is a way for two programs to talk to each other. When you use an app on your phone to check the weather, it sends a request through an API to a server, which sends back the weather data for your app to display.'
+      },
+      college: {
+        tag: 'College Mode',
+        text: 'An API defines a contract between a client and server through endpoints, request methods, and data schemas. RESTful APIs use HTTP verbs (GET, POST, PUT, DELETE) to perform CRUD operations on resources, typically exchanging JSON payloads with appropriate status codes.'
+      },
+      phd: {
+        tag: 'PhD Mode',
+        text: 'APIs represent an abstraction boundary in distributed systems, decoupling interface from implementation per Parnas\u2019 information hiding principle. Modern API design involves trade-offs between REST\'s resource-oriented architecture, GraphQL\'s query flexibility reducing over-fetching, and gRPC\'s protocol buffer efficiency for low-latency inter-service communication.'
+      },
+      executive: {
+        tag: 'Executive Mode',
+        text: 'APIs are the connective tissue of your tech stack \u2014 they let systems share data without tight coupling. Strategic API design directly impacts integration velocity, partner ecosystem growth, and platform scalability. The key decision: build for internal efficiency or external developer adoption.'
+      }
+    };
+
+    document.querySelectorAll('.level-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.level-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+
+        const level = pill.dataset.level;
+        const data = levels[level];
+        const tag = document.querySelector('.level-tag');
+        const text = document.getElementById('level-text');
+
+        tag.textContent = data.tag;
+        text.style.opacity = '0';
+        setTimeout(() => {
+          text.textContent = data.text;
+          text.style.opacity = '1';
+        }, 200);
+      });
+    });
+
+    // Smooth text transition
+    document.getElementById('level-text').style.transition = 'opacity 0.2s ease';
+
+    // ─── Walkthrough video autoplay loop ───
+    const vid = document.getElementById('walkthrough-video');
+    if (vid) {
+      vid.play().catch(() => {});
+    }
+
+    // ─── Particle Network Background ───
+    (function () {
+      const canvas = document.getElementById('bg-canvas');
+      const ctx = canvas.getContext('2d');
+      let w, h, particles, mouse;
+      const PARTICLE_COUNT = 350;
+      const CONNECT_DIST = 150;
+      const MOUSE_DIST = 200;
+
+      mouse = { x: -9999, y: -9999 };
+
+      function isLight() { return document.documentElement.getAttribute('data-theme') === 'light'; }
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+
+      function createParticles() {
+        particles = [];
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          particles.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            vx: (Math.random() - 0.5) * 0.4,
+            vy: (Math.random() - 0.5) * 0.4,
+            r: Math.random() * 1.5 + 0.5,
+            hue: isLight() ? 190 + Math.random() * 20 : 30 + Math.random() * 20,
+            alpha: Math.random() * 0.4 + 0.1,
+          });
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+
+        // Draw connections
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < CONNECT_DIST) {
+              const light = isLight();
+              const opacity = (1 - dist / CONNECT_DIST) * (light ? 0.35 : 0.15);
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = light ? `rgba(42, 100, 140, ${opacity})` : `rgba(255, 153, 0, ${opacity})`;
+              ctx.lineWidth = light ? 0.8 : 0.5;
+              ctx.stroke();
+            }
+          }
+
+          // Mouse connections — brighter
+          const mdx = particles[i].x - mouse.x;
+          const mdy = particles[i].y - mouse.y;
+          const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+          if (mDist < MOUSE_DIST) {
+            const light2 = isLight();
+            const opacity = (1 - mDist / MOUSE_DIST) * (light2 ? 0.5 : 0.3);
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(mouse.x, mouse.y);
+            ctx.strokeStyle = light2 ? `rgba(42, 100, 140, ${opacity})` : `rgba(255, 184, 77, ${opacity})`;
+            ctx.lineWidth = light2 ? 1.2 : 0.8;
+            ctx.stroke();
+          }
+        }
+
+        // Draw particles
+        for (const p of particles) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${p.hue}, 80%, 55%, ${p.alpha})`;
+          ctx.fill();
+        }
+      }
+
+      function update() {
+        for (const p of particles) {
+          p.x += p.vx;
+          p.y += p.vy;
+
+          // Soft bounce off edges
+          if (p.x < 0 || p.x > w) p.vx *= -1;
+          if (p.y < 0 || p.y > h) p.vy *= -1;
+
+          // Slight mouse repulsion for organic feel
+          const mdx = p.x - mouse.x;
+          const mdy = p.y - mouse.y;
+          const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+          if (mDist < MOUSE_DIST && mDist > 0) {
+            const force = (1 - mDist / MOUSE_DIST) * 0.02;
+            p.vx += (mdx / mDist) * force;
+            p.vy += (mdy / mDist) * force;
+          }
+
+          // Dampen velocity
+          p.vx *= 0.999;
+          p.vy *= 0.999;
+
+          // Pulse alpha
+          p.alpha += (Math.random() - 0.5) * 0.005;
+          p.alpha = Math.max(0.05, Math.min(0.5, p.alpha));
+        }
+      }
+
+      function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener('resize', () => {
+        resize();
+        // Re-scatter on big resize
+        if (particles) {
+          for (const p of particles) {
+            if (p.x > w) p.x = Math.random() * w;
+            if (p.y > h) p.y = Math.random() * h;
+          }
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+      });
+
+      window.addEventListener('mouseleave', () => {
+        mouse.x = -9999;
+        mouse.y = -9999;
+      });
+
+      resize();
+      createParticles();
+      loop();
+      window._recreateParticles = createParticles;
+    })();
+  </script>
+</body>
+</html>

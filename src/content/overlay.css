@@ -1,0 +1,127 @@
+.screensense-overlay {
+  position: fixed;
+  z-index: 2147483647;
+  width: 420px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: rgba(19, 25, 33, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 153, 0, 0.15);
+  color: rgba(255, 255, 255, 0.92);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  pointer-events: auto;
+  user-select: text;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.screensense-overlay.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.screensense-overlay.fade-out {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Stage label with pulsing dot */
+.screensense-stage {
+  font-size: 12px;
+  color: rgba(255, 153, 0, 0.6);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.screensense-stage::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 153, 0, 0.7);
+  animation: screensense-pulse 1.2s ease-in-out infinite;
+}
+
+/* Transcribed question */
+.screensense-transcript {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  margin-bottom: 12px;
+  font-style: italic;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+}
+
+/* Response area */
+.screensense-response {
+  /* Inherits overlay font */
+}
+
+.screensense-response strong {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 1);
+}
+
+.screensense-response code {
+  background: rgba(255, 153, 0, 0.08);
+  border: 0.5px solid rgba(255, 153, 0, 0.15);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-size: 13px;
+}
+
+.screensense-response ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.screensense-response li {
+  margin: 2px 0;
+}
+
+/* Error text */
+.screensense-error {
+  color: rgba(255, 120, 120, 0.9);
+  font-size: 13px;
+}
+
+/* Thin scrollbar matching glass aesthetic */
+.screensense-overlay::-webkit-scrollbar {
+  width: 4px;
+}
+
+.screensense-overlay::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.screensense-overlay::-webkit-scrollbar-thumb {
+  background: rgba(255, 153, 0, 0.2);
+  border-radius: 2px;
+}
+
+.screensense-overlay::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 153, 0, 0.35);
+}
+
+/* Pulsing dot animation */
+@keyframes screensense-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}

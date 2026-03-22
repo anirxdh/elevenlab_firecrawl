@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "aws-skills": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "bcae5805ae44091f01d100e6bafcfeb5477edbfeb7b2b9d87bbbeedd8edefea8"
+    }
+  }
+}
