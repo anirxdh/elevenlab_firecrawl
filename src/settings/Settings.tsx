@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import {
   getSettings,
   saveSettings,
+  getApiKeys,
+  saveApiKeys,
 } from '../shared/storage';
 import { DEFAULT_SETTINGS, VOICE_OPTIONS } from '../shared/constants';
-import { ExtensionSettings, DisplayMode, ExplanationLevel } from '../shared/types';
+import { ExtensionSettings, DisplayMode, ExplanationLevel, ApiKeys } from '../shared/types';
 
 /* ─── Gear Illustration ─── */
 
@@ -41,11 +43,13 @@ const GearIllustration: React.FC = () => (
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<ExtensionSettings | null>(null);
+  const [apiKeys, setApiKeys] = useState<ApiKeys>({});
   const [capturing, setCapturing] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     getSettings().then(setSettings);
+    getApiKeys().then(setApiKeys);
   }, []);
 
   const handleKeyCapture = (e: React.KeyboardEvent) => {
@@ -60,6 +64,7 @@ const Settings: React.FC = () => {
   const handleSave = async () => {
     if (settings) {
       await saveSettings(settings);
+      await saveApiKeys(apiKeys);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     }
@@ -98,6 +103,39 @@ const Settings: React.FC = () => {
           <div className="card-content">
             <GearIllustration />
             <h1 className="card-title"><span className="gradient-text">Settings</span></h1>
+
+            <div className="section-divider">
+              <span className="section-title">API Keys</span>
+              <p className="field-hint" style={{ marginTop: 4 }}>Required for voice commands to work. Keys are stored locally in your browser.</p>
+            </div>
+
+            <div className="field-group">
+              <label className="field-label">ElevenLabs API Key <span className="required-badge">required</span></label>
+              <input type="password" value={apiKeys.elevenLabsKey || ''} placeholder="sk_..."
+                onChange={e => setApiKeys({ ...apiKeys, elevenLabsKey: e.target.value || undefined })}
+                className="text-input" />
+              <p className="field-hint">Get yours free at <a href="https://elevenlabs.io" target="_blank" rel="noopener" className="field-link">elevenlabs.io</a> — used for speech-to-text and text-to-speech</p>
+            </div>
+
+            <div className="field-group">
+              <label className="field-label">Groq API Key <span className="optional-badge">optional</span></label>
+              <input type="password" value={apiKeys.groqKey || ''} placeholder="gsk_..."
+                onChange={e => setApiKeys({ ...apiKeys, groqKey: e.target.value || undefined })}
+                className="text-input" />
+              <p className="field-hint">Free at <a href="https://console.groq.com/keys" target="_blank" rel="noopener" className="field-link">console.groq.com</a> — fallback speech-to-text</p>
+            </div>
+
+            <div className="field-group">
+              <label className="field-label">Deepgram API Key <span className="optional-badge">optional</span></label>
+              <input type="password" value={apiKeys.deepgramKey || ''} placeholder="your-deepgram-key"
+                onChange={e => setApiKeys({ ...apiKeys, deepgramKey: e.target.value || undefined })}
+                className="text-input" />
+              <p className="field-hint">$200 free credit at <a href="https://console.deepgram.com" target="_blank" rel="noopener" className="field-link">deepgram.com</a> — best accuracy STT</p>
+            </div>
+
+            <div className="section-divider">
+              <span className="section-title">Preferences</span>
+            </div>
 
             <div className="field-group">
               <label className="field-label">Shortcut Key</label>
@@ -308,6 +346,11 @@ const Settings: React.FC = () => {
         .field-hint { margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.2); }
         .field-link { color: rgba(255,153,0,0.7); text-decoration: none; transition: color 0.2s; }
         .field-link:hover { color: #FF9900; text-decoration: underline; }
+
+        .section-divider { margin: 2rem 0 1.25rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; }
+        .section-title { font-size: 13px; font-weight: 700; color: rgba(255,153,0,0.8); letter-spacing: 0.05em; text-transform: uppercase; }
+        .required-badge { font-size: 9px; font-weight: 600; color: #FF9900; background: rgba(255,153,0,0.15); padding: 2px 6px; border-radius: 4px; margin-left: 6px; text-transform: none; letter-spacing: normal; }
+        .optional-badge { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; margin-left: 6px; text-transform: none; letter-spacing: normal; }
 
         .toggle-group {
           display: flex; gap: 4px; background: rgba(255,255,255,0.03);
