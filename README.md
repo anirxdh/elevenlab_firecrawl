@@ -18,8 +18,7 @@
 
 <p align="center">
   <a href="https://youtu.be/szfykWVgEYM"><strong>Demo Video</strong></a> &middot;
-  <a href="https://screen-sense-nova-anirxdh.netlify.app/"><strong>Landing Page</strong></a> &middot;
-  <a href="https://github.com/anirxdh/Nova-AWS"><strong>GitHub</strong></a>
+  <a href="https://screen-sense-nova-anirxdh.netlify.app/"><strong>Landing Page</strong></a>
 </p>
 
 ---
@@ -30,12 +29,11 @@ ScreenSense Voice is a Chrome extension that turns your voice into browser actio
 
 **Example:** *"Add the cheapest USB-C cable to my cart on Amazon"* — ScreenSense will navigate to Amazon, search, find the cheapest option, click it, and add it to your cart. All hands-free.
 
-### Amazon Nova Services Used
+### Services Used
 
 | Service | Purpose |
 |---------|---------|
 | **Amazon Nova 2 Lite** (Bedrock) | Multimodal reasoning — analyzes screenshots + DOM to decide actions |
-| **Amazon Transcribe Streaming** | Real-time speech-to-text for voice commands |
 | **ElevenLabs TTS** | Natural voice readback of AI responses (optional, falls back to browser speech) |
 
 ---
@@ -87,8 +85,8 @@ User holds ` key + speaks
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/anirxdh/Nova-AWS.git
-cd Nova-AWS
+git clone <repository-url>
+cd screensense-voice
 ```
 
 ### 2. Install Frontend Dependencies
@@ -364,17 +362,6 @@ If something isn't working, try these steps in order:
 | AI Reasoning | Amazon Nova 2 Lite (AWS Bedrock) |
 | Speech-to-Text | AWS Transcribe Streaming (primary), Groq Whisper (fallback) |
 | Text-to-Speech | ElevenLabs (optional), Web Speech API (fallback) |
-
----
-
-## Hackathon Categories
-
-This project fits multiple Amazon Nova Hackathon categories:
-
-- **Agentic AI** — Autonomous agent loop with multi-step reasoning
-- **Multimodal Understanding** — Screenshot + DOM analysis for action decisions
-- **UI Automation** — Automated clicking, typing, navigating across web apps
-- **Voice AI** — Real-time voice commands via AWS Transcribe
 
 ---
 

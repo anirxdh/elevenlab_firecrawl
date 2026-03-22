@@ -155,7 +155,7 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        <p className="footer-text">ScreenSense Voice &middot; Amazon Nova Hackathon 2026</p>
+        <p className="footer-text">ScreenSense Voice</p>
       </div>
 
       <style>{`
