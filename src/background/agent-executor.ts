@@ -152,6 +152,19 @@ export interface AgentLoopState {
   agentLoopCancelled: boolean;
   agentLoopRunning: boolean;
   agentLoopTabId: number | null;
+  firecrawlMarkdown?: string;
+  conversationHistory?: Array<{ role: string; content: string }>;
+  onAwaitReply?: () => void;
+}
+
+/** Classify a Nova response to determine the appropriate handling path. */
+export function classifyResponse(response: TaskResponse): 'action' | 'speak' | 'clarify' | 'options' | 'suggest' | 'done' {
+  if (response.needs_clarification) return 'clarify';
+  if (response.options?.length) return 'options';
+  if (response.suggestion && response.requires_confirmation) return 'suggest';
+  if (response.speak && !response.actions?.length) return 'speak';
+  if (response.type === 'done') return 'done';
+  return 'action';
 }
 
 // ─── Agent Loop ───
@@ -369,7 +382,10 @@ export async function runAgentLoop(
     const endNovaTimer = dbgTimer('Nova /task/continue call');
     let continueResult: TaskResponse;
     try {
-      continueResult = await sendTaskContinue(originalCommand, actionHistory, newScreenshot, domSnapshot);
+      continueResult = await sendTaskContinue(
+        originalCommand, actionHistory, newScreenshot, domSnapshot,
+        state.firecrawlMarkdown, state.conversationHistory,
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Agent loop failed to continue';
       sendToTab(tabId, { action: 'pipeline-error', error: msg });
@@ -392,6 +408,38 @@ export async function runAgentLoop(
     // Send reasoning to bubble if present
     if (continueResult.reasoning) {
       sendToTab(tabId, { action: 'bubble-reasoning', text: continueResult.reasoning });
+    }
+
+    // Evaluate conversational responses before standard action handling
+    const responseClass = classifyResponse(continueResult);
+    if (responseClass === 'clarify') {
+      const question = continueResult.question || 'Could you clarify?';
+      sendToTab(tabId, { action: 'tts-summary', summary: question });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: question });
+      state.onAwaitReply?.();
+      return;
+    }
+    if (responseClass === 'options') {
+      const optionsText = continueResult.question
+        ? `${continueResult.question} ${continueResult.options!.join(', ')}`
+        : continueResult.options!.join(', ');
+      sendToTab(tabId, { action: 'tts-summary', summary: optionsText });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: optionsText });
+      state.onAwaitReply?.();
+      return;
+    }
+    if (responseClass === 'suggest') {
+      const suggestionText = continueResult.suggestion || 'I have a suggestion.';
+      sendToTab(tabId, { action: 'tts-summary', summary: suggestionText });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: suggestionText });
+      state.onAwaitReply?.();
+      return;
+    }
+    if (responseClass === 'speak') {
+      const speakText = continueResult.speak || '';
+      sendToTab(tabId, { action: 'tts-summary', summary: speakText });
+      sendAgentDone(tabId, actionHistory, speakText);
+      return;
     }
 
     // Evaluate Nova's response

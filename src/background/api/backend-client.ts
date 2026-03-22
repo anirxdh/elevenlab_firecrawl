@@ -29,6 +29,15 @@ export interface TaskResponse {
     description: string;
     speak?: string;  // 3-5 word TTS phrase from Nova
   }>;
+  // Conversational response fields
+  needs_clarification?: boolean;
+  question?: string;
+  options?: string[];
+  suggestion?: string;
+  requires_confirmation?: boolean;
+  speak?: string;  // standalone speech without actions
+  intent?: string; // classified intent: new_task | reply | follow_up | correction | interruption
+  research?: { urls: string[] };
 }
 
 export interface ActionHistoryEntry {
@@ -42,21 +51,27 @@ export interface ActionHistoryEntry {
 export async function sendTask(
   command: string,
   screenshotDataUrl: string,
-  domSnapshot: object
+  domSnapshot: object,
+  firecrawlMarkdown?: string,
+  conversationHistory?: Array<{ role: string; content: string }>,
 ): Promise<TaskResponse> {
   console.log('[ScreenSense][backend-client] sendTask called — command:', command);
 
   // Strip the data:image/png;base64, prefix to get raw base64
   const base64 = screenshotDataUrl.replace(/^data:image\/\w+;base64,/, '');
 
+  const body: Record<string, unknown> = {
+    command,
+    screenshot: base64,
+    dom_snapshot: domSnapshot,
+  };
+  if (firecrawlMarkdown) body.firecrawl_markdown = firecrawlMarkdown;
+  if (conversationHistory?.length) body.conversation_history = conversationHistory;
+
   const response = await fetch(`${BACKEND_URL}/task`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      command,
-      screenshot: base64,
-      dom_snapshot: domSnapshot,
-    }),
+    body: JSON.stringify(body),
   });
 
   console.log('[ScreenSense][backend-client] /task response status:', response.status);
@@ -91,22 +106,28 @@ export async function sendTaskContinue(
   originalCommand: string,
   actionHistory: ActionHistoryEntry[],
   screenshotDataUrl: string,
-  domSnapshot: object
+  domSnapshot: object,
+  firecrawlMarkdown?: string,
+  conversationHistory?: Array<{ role: string; content: string }>,
 ): Promise<TaskResponse> {
   console.log('[ScreenSense][backend-client] sendTaskContinue called — command:', originalCommand, 'history length:', actionHistory.length);
 
   // Strip the data:image/png;base64, prefix to get raw base64
   const base64 = screenshotDataUrl.replace(/^data:image\/\w+;base64,/, '');
 
+  const body: Record<string, unknown> = {
+    original_command: originalCommand,
+    action_history: actionHistory,
+    screenshot: base64,
+    dom_snapshot: domSnapshot,
+  };
+  if (firecrawlMarkdown) body.firecrawl_markdown = firecrawlMarkdown;
+  if (conversationHistory?.length) body.conversation_history = conversationHistory;
+
   const response = await fetch(`${BACKEND_URL}/task/continue`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      original_command: originalCommand,
-      action_history: actionHistory,
-      screenshot: base64,
-      dom_snapshot: domSnapshot,
-    }),
+    body: JSON.stringify(body),
   });
 
   console.log('[ScreenSense][backend-client] /task/continue response status:', response.status);

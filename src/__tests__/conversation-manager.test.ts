@@ -1,5 +1,5 @@
 // src/__tests__/conversation-manager.test.ts
-import { ConversationManager, ConversationState } from '../background/conversation-manager';
+import { ConversationManager, ConversationState, routeByIntent } from '../background/conversation-manager';
 
 describe('ConversationManager', () => {
   let cm: ConversationManager;
@@ -72,5 +72,47 @@ describe('ConversationManager', () => {
   test('isInConversation returns true when active', () => {
     cm.transition(ConversationState.Listening);
     expect(cm.isInConversation()).toBe(true);
+  });
+
+  test('transitions to AwaitingReply state', () => {
+    cm.transition(ConversationState.AwaitingReply);
+    expect(cm.getState()).toBe(ConversationState.AwaitingReply);
+    expect(cm.isInConversation()).toBe(true);
+  });
+});
+
+describe('routeByIntent', () => {
+  let cm: ConversationManager;
+  beforeEach(() => { cm = new ConversationManager(); });
+
+  test('new_task clears session and starts fresh', () => {
+    cm.startSession(1);
+    cm.addTurn('user', 'old message');
+    const result = routeByIntent('new_task', 1, cm);
+    expect(result).toBe('new_session');
+    expect(cm.getHistory(1)).toHaveLength(0);
+  });
+
+  test('interruption transitions to idle and returns cancel', () => {
+    cm.transition(ConversationState.Processing);
+    const result = routeByIntent('interruption', 1, cm);
+    expect(result).toBe('cancel');
+    expect(cm.getState()).toBe(ConversationState.Idle);
+  });
+
+  test('reply returns continue', () => {
+    expect(routeByIntent('reply', 1, cm)).toBe('continue');
+  });
+
+  test('follow_up returns continue', () => {
+    expect(routeByIntent('follow_up', 1, cm)).toBe('continue');
+  });
+
+  test('correction returns continue', () => {
+    expect(routeByIntent('correction', 1, cm)).toBe('continue');
+  });
+
+  test('unknown intent defaults to continue', () => {
+    expect(routeByIntent('unknown_thing', 1, cm)).toBe('continue');
   });
 });

@@ -2,11 +2,12 @@ import { ExtensionState, IconState, ConversationTurn, ConversationInfo, DomSnaps
 import { isMicPermissionGranted, getApiKeys } from '../shared/storage';
 import { MAX_CONVERSATION_TURNS } from '../shared/constants';
 import { captureScreenshot } from './screenshot';
-import { connectSSE, checkBackendHealth, sendTask, TaskResponse } from './api/backend-client';
+import { connectSSE, checkBackendHealth, sendTask, scrapeUrl, TaskResponse } from './api/backend-client';
 import { transcribe } from './transcription-service';
 import { ensureOffscreen, handleOffscreenReady, forwardAmplitude } from './offscreen-manager';
-import { runAgentLoop, dbg, dbgTimer, clearDebugLog, AgentLoopState } from './agent-executor';
+import { runAgentLoop, dbg, dbgTimer, clearDebugLog, AgentLoopState, classifyResponse } from './agent-executor';
 import { registerHandler, initMessageRouter } from './message-router';
+import { ConversationManager, ConversationState, routeByIntent } from './conversation-manager';
 // groq-vision imports retained for Phase 8+ migration
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { streamVisionResponse, generateTtsSummary } from './api/groq-vision';
@@ -18,6 +19,9 @@ let pendingTabId: number | null = null;
 let recordingTabId: number | null = null;
 let swAmpLogged = false;
 let pipelineRunning = false;
+
+// Conversation manager for multi-turn dialogue
+const conversation = new ConversationManager();
 
 // Track whether the offscreen document has been set up and recording started
 // so that stop-recording waits for start-recording to complete.
@@ -111,6 +115,11 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
   pipelineRunning = true;
   clearDebugLog();
   dbg(`=== PIPELINE START === tabId=${tabId} audioLen=${audioBase64.length} mime=${mimeType}`);
+
+  // Start conversation session and transition to listening
+  conversation.startSession(tabId);
+  conversation.transition(ConversationState.Listening);
+
   try {
     // Capture screenshot (overlay hidden during capture)
     const endScreenshot = dbgTimer('Pipeline: screenshot');
@@ -146,6 +155,10 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
       return;
     }
 
+    // Record user turn in conversation manager
+    conversation.addTurn('user', transcript);
+    conversation.transition(ConversationState.Processing);
+
     sendToTab(tabId, { action: 'bubble-set-task', task: transcript });
     sendToTab(tabId, { action: 'bubble-state', state: 'understanding', label: transcript });
 
@@ -160,11 +173,26 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
       console.warn('[ScreenSense] Could not scrape DOM, proceeding without');
     }
 
+    // Scrape current URL via Firecrawl (optional, non-blocking on failure)
+    let firecrawlMarkdown: string | undefined;
+    try {
+      const currentUrl = (domSnapshot as DomSnapshot).url;
+      if (currentUrl) {
+        firecrawlMarkdown = await scrapeUrl(currentUrl);
+        dbg(`Firecrawl scraped ${firecrawlMarkdown.length} chars`);
+      }
+    } catch (err) {
+      dbg(`Firecrawl scrape failed (non-fatal): ${err}`);
+    }
+
+    // Get conversation history for context
+    const conversationHistory = conversation.getTextOnlyHistory(tabId);
+
     // Send command + screenshot + DOM to backend for Nova reasoning
     const endNova = dbgTimer('Pipeline: Nova /task call');
     let taskResult: TaskResponse;
     try {
-      taskResult = await sendTask(transcript, screenshot, domSnapshot);
+      taskResult = await sendTask(transcript, screenshot, domSnapshot, firecrawlMarkdown, conversationHistory);
       endNova();
       dbg(`Nova initial response: type=${taskResult.type} reasoning="${taskResult.reasoning || 'none'}" actions=${taskResult.actions?.length || 0}`);
       if (taskResult.actions) {
@@ -179,9 +207,55 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
       return;
     }
 
+    // Handle intent-based routing if an intent was returned
+    if (taskResult.intent) {
+      const route = routeByIntent(taskResult.intent, tabId, conversation);
+      if (route === 'cancel') {
+        sendToTab(tabId, { action: 'bubble-state', state: 'done', label: 'Cancelled' });
+        return;
+      }
+      // 'new_session' clears and restarts; 'continue' proceeds normally
+    }
+
     // Send reasoning to bubble if present
     if (taskResult.reasoning) {
       sendToTab(tabId, { action: 'bubble-reasoning', text: taskResult.reasoning });
+    }
+
+    // Handle conversational response types before standard handling
+    const responseClass = classifyResponse(taskResult);
+    if (responseClass === 'clarify') {
+      const question = taskResult.question || 'Could you clarify?';
+      conversation.addTurn('agent', question);
+      sendToTab(tabId, { action: 'tts-summary', summary: question });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: question });
+      conversation.transition(ConversationState.AwaitingReply);
+      return;
+    }
+    if (responseClass === 'options') {
+      const optionsText = taskResult.question
+        ? `${taskResult.question} ${taskResult.options!.join(', ')}`
+        : taskResult.options!.join(', ');
+      conversation.addTurn('agent', optionsText);
+      sendToTab(tabId, { action: 'tts-summary', summary: optionsText });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: optionsText });
+      conversation.transition(ConversationState.AwaitingReply);
+      return;
+    }
+    if (responseClass === 'suggest') {
+      const suggestionText = taskResult.suggestion || 'I have a suggestion.';
+      conversation.addTurn('agent', suggestionText);
+      sendToTab(tabId, { action: 'tts-summary', summary: suggestionText });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: suggestionText });
+      conversation.transition(ConversationState.AwaitingReply);
+      return;
+    }
+    if (responseClass === 'speak') {
+      const speakText = taskResult.speak || '';
+      conversation.addTurn('agent', speakText);
+      sendToTab(tabId, { action: 'tts-summary', summary: speakText });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: speakText });
+      return;
     }
 
     // Handle response based on type
@@ -195,7 +269,8 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
       const summary = firstSentence.endsWith('.') ? firstSentence : firstSentence + '.';
       sendToTab(tabId, { action: 'tts-summary', summary });
 
-      // Add to conversation history
+      // Add to conversation history (both old map and ConversationManager)
+      conversation.addTurn('agent', answerText);
       const history = getConversation(tabId);
       history.push({ role: 'user', content: transcript });
       history.push({ role: 'agent', content: answerText });
@@ -212,6 +287,7 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
         ?.map((a, i) => `${i + 1}. ${a.description}`)
         .join('\n') || 'No steps returned';
 
+      conversation.addTurn('agent', stepsText);
       const history = getConversation(tabId);
       history.push({ role: 'user', content: transcript });
       history.push({ role: 'agent', content: stepsText });
@@ -221,7 +297,16 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
       }
       sendToTab(tabId, { action: 'conversation-info', info: getConversationInfo(tabId) });
 
+      // Pass Firecrawl + conversation context to agent loop
+      agentState.firecrawlMarkdown = firecrawlMarkdown;
+      agentState.conversationHistory = conversationHistory;
+      agentState.onAwaitReply = () => {
+        conversation.transition(ConversationState.AwaitingReply);
+        sendToTab(tabId, { action: 'bubble-state', state: 'done', label: 'Waiting for your reply...' });
+      };
+
       // Execute steps via agent loop (re-observes page after each batch)
+      conversation.transition(ConversationState.Executing);
       await runAgentLoop(tabId, transcript, taskResult.actions, agentState);
     }
   } catch (err) {
@@ -245,6 +330,11 @@ async function runFollowUp(tabId: number, text: string): Promise<void> {
   currentState = 'processing';
   broadcastStateChange('processing');
 
+  // Start/continue conversation session
+  conversation.startSession(tabId);
+  conversation.addTurn('user', text);
+  conversation.transition(ConversationState.Processing);
+
   try {
     let screenshot: string;
     try {
@@ -267,19 +357,78 @@ async function runFollowUp(tabId: number, text: string): Promise<void> {
       console.warn('[ScreenSense] Could not scrape DOM for follow-up, proceeding without');
     }
 
+    // Scrape current URL via Firecrawl (optional, non-blocking on failure)
+    let firecrawlMarkdown: string | undefined;
+    try {
+      const currentUrl = (domSnapshot as DomSnapshot).url;
+      if (currentUrl) {
+        firecrawlMarkdown = await scrapeUrl(currentUrl);
+      }
+    } catch {
+      // Firecrawl not available — proceed without
+    }
+
+    // Get conversation history for context
+    const conversationHistory = conversation.getTextOnlyHistory(tabId);
+
     // Send command + screenshot + DOM to backend for Nova reasoning
     let taskResult: TaskResponse;
     try {
-      taskResult = await sendTask(text, screenshot, domSnapshot);
+      taskResult = await sendTask(text, screenshot, domSnapshot, firecrawlMarkdown, conversationHistory);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Something went wrong — give it another try';
       sendToTab(tabId, { action: 'pipeline-error', error: msg });
       return;
     }
 
+    // Handle intent-based routing if an intent was returned
+    if (taskResult.intent) {
+      const route = routeByIntent(taskResult.intent, tabId, conversation);
+      if (route === 'cancel') {
+        sendToTab(tabId, { action: 'bubble-state', state: 'done', label: 'Cancelled' });
+        return;
+      }
+    }
+
     // Send reasoning to bubble if present
     if (taskResult.reasoning) {
       sendToTab(tabId, { action: 'bubble-reasoning', text: taskResult.reasoning });
+    }
+
+    // Handle conversational response types before standard handling
+    const responseClass = classifyResponse(taskResult);
+    if (responseClass === 'clarify') {
+      const question = taskResult.question || 'Could you clarify?';
+      conversation.addTurn('agent', question);
+      sendToTab(tabId, { action: 'tts-summary', summary: question });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: question });
+      conversation.transition(ConversationState.AwaitingReply);
+      return;
+    }
+    if (responseClass === 'options') {
+      const optionsText = taskResult.question
+        ? `${taskResult.question} ${taskResult.options!.join(', ')}`
+        : taskResult.options!.join(', ');
+      conversation.addTurn('agent', optionsText);
+      sendToTab(tabId, { action: 'tts-summary', summary: optionsText });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: optionsText });
+      conversation.transition(ConversationState.AwaitingReply);
+      return;
+    }
+    if (responseClass === 'suggest') {
+      const suggestionText = taskResult.suggestion || 'I have a suggestion.';
+      conversation.addTurn('agent', suggestionText);
+      sendToTab(tabId, { action: 'tts-summary', summary: suggestionText });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: suggestionText });
+      conversation.transition(ConversationState.AwaitingReply);
+      return;
+    }
+    if (responseClass === 'speak') {
+      const speakText = taskResult.speak || '';
+      conversation.addTurn('agent', speakText);
+      sendToTab(tabId, { action: 'tts-summary', summary: speakText });
+      sendToTab(tabId, { action: 'bubble-state', state: 'done', label: speakText });
+      return;
     }
 
     // Handle response based on type
@@ -293,6 +442,7 @@ async function runFollowUp(tabId: number, text: string): Promise<void> {
       const summary = firstSentence2.endsWith('.') ? firstSentence2 : firstSentence2 + '.';
       sendToTab(tabId, { action: 'tts-summary', summary });
 
+      conversation.addTurn('agent', answerText);
       const history = getConversation(tabId);
       history.push({ role: 'user', content: text });
       history.push({ role: 'agent', content: answerText });
@@ -309,6 +459,7 @@ async function runFollowUp(tabId: number, text: string): Promise<void> {
         ?.map((a, i) => `${i + 1}. ${a.description}`)
         .join('\n') || 'No steps returned';
 
+      conversation.addTurn('agent', stepsText);
       const history = getConversation(tabId);
       history.push({ role: 'user', content: text });
       history.push({ role: 'agent', content: stepsText });
@@ -318,7 +469,16 @@ async function runFollowUp(tabId: number, text: string): Promise<void> {
       }
       sendToTab(tabId, { action: 'conversation-info', info: getConversationInfo(tabId) });
 
+      // Pass Firecrawl + conversation context to agent loop
+      agentState.firecrawlMarkdown = firecrawlMarkdown;
+      agentState.conversationHistory = conversationHistory;
+      agentState.onAwaitReply = () => {
+        conversation.transition(ConversationState.AwaitingReply);
+        sendToTab(tabId, { action: 'bubble-state', state: 'done', label: 'Waiting for your reply...' });
+      };
+
       // Execute steps via agent loop (re-observes page after each batch)
+      conversation.transition(ConversationState.Executing);
       await runAgentLoop(tabId, text, taskResult.actions, agentState);
     }
   } catch (err) {
@@ -466,6 +626,7 @@ registerHandler('cancel-agent-loop', (_message, _sender, sendResponse) => {
 registerHandler('clear-conversation', (_message, sender, sendResponse) => {
   if (sender.tab?.id) {
     clearConversation(sender.tab.id);
+    conversation.clearSession(sender.tab.id);
     sendToTab(sender.tab.id, {
       action: 'conversation-info',
       info: { turns: 0, maxTurns: MAX_CONVERSATION_TURNS },
@@ -516,6 +677,7 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   conversations.delete(tabId);
+  conversation.clearSession(tabId);
   if (agentState.agentLoopTabId !== null && tabId === agentState.agentLoopTabId) {
     agentState.agentLoopCancelled = true;
   }

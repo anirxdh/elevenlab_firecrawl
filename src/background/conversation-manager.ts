@@ -81,3 +81,22 @@ export class ConversationManager {
 
   getActiveTabId(): number | null { return this.activeTabId; }
 }
+
+/** Route a user utterance based on its classified intent. */
+export function routeByIntent(
+  intent: string,
+  tabId: number,
+  cm: ConversationManager,
+): 'new_session' | 'continue' | 'cancel' {
+  switch (intent) {
+    case 'new_task':
+      cm.clearSession(tabId);
+      cm.startSession(tabId);
+      return 'new_session';
+    case 'interruption':
+      cm.transition(ConversationState.Idle);
+      return 'cancel';
+    default:
+      return 'continue';
+  }
+}

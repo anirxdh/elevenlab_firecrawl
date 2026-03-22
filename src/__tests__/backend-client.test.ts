@@ -396,4 +396,148 @@ describe('Backend Client', () => {
       expect(result.actions![1].speak).toBe('Opening Amazon');
     });
   });
+
+  // ── sendTask with optional params ────────────────────────────────────
+
+  describe('sendTask() with firecrawl and conversation history', () => {
+    const sampleDom = { url: 'https://example.com', title: 'Test' };
+    const sampleScreenshot = 'data:image/png;base64,iVBORw0KGgoAAAANS';
+
+    it('sends firecrawl_markdown when provided', async () => {
+      mockFetchResponse(200, { type: 'answer', text: 'ok' });
+
+      await sendTask('test', sampleScreenshot, sampleDom, 'Some markdown content');
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.firecrawl_markdown).toBe('Some markdown content');
+    });
+
+    it('sends conversation_history when provided', async () => {
+      mockFetchResponse(200, { type: 'answer', text: 'ok' });
+      const history = [{ role: 'user', content: 'hello' }, { role: 'agent', content: 'hi' }];
+
+      await sendTask('test', sampleScreenshot, sampleDom, undefined, history);
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.conversation_history).toEqual(history);
+      expect(body.firecrawl_markdown).toBeUndefined();
+    });
+
+    it('omits optional fields when not provided', async () => {
+      mockFetchResponse(200, { type: 'answer', text: 'ok' });
+
+      await sendTask('test', sampleScreenshot, sampleDom);
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.firecrawl_markdown).toBeUndefined();
+      expect(body.conversation_history).toBeUndefined();
+    });
+
+    it('omits conversation_history when empty array', async () => {
+      mockFetchResponse(200, { type: 'answer', text: 'ok' });
+
+      await sendTask('test', sampleScreenshot, sampleDom, undefined, []);
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.conversation_history).toBeUndefined();
+    });
+  });
+
+  // ── sendTaskContinue with optional params ────────────────────────────
+
+  describe('sendTaskContinue() with firecrawl and conversation history', () => {
+    const sampleScreenshot = 'data:image/png;base64,abc123';
+    const sampleDom = { url: 'https://example.com', title: 'Test' };
+    const sampleHistory: ActionHistoryEntry[] = [
+      { description: 'Clicked button', result: 'Success' },
+    ];
+
+    it('sends firecrawl_markdown when provided', async () => {
+      mockFetchResponse(200, { type: 'done' });
+
+      await sendTaskContinue('test', sampleHistory, sampleScreenshot, sampleDom, 'markdown content');
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.firecrawl_markdown).toBe('markdown content');
+    });
+
+    it('sends conversation_history when provided', async () => {
+      mockFetchResponse(200, { type: 'done' });
+      const convHistory = [{ role: 'user', content: 'do this' }];
+
+      await sendTaskContinue('test', sampleHistory, sampleScreenshot, sampleDom, undefined, convHistory);
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.conversation_history).toEqual(convHistory);
+    });
+
+    it('omits optional fields when not provided', async () => {
+      mockFetchResponse(200, { type: 'done' });
+
+      await sendTaskContinue('test', sampleHistory, sampleScreenshot, sampleDom);
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.firecrawl_markdown).toBeUndefined();
+      expect(body.conversation_history).toBeUndefined();
+    });
+  });
+
+  // ── Conversational response fields ───────────────────────────────────
+
+  describe('TaskResponse conversational fields', () => {
+    it('handles needs_clarification response', async () => {
+      const response: TaskResponse = {
+        type: 'answer',
+        needs_clarification: true,
+        question: 'Which product did you mean?',
+      };
+      mockFetchResponse(200, response);
+
+      const result = await sendTask('add to cart', 'data:image/png;base64,x', {});
+
+      expect(result.needs_clarification).toBe(true);
+      expect(result.question).toBe('Which product did you mean?');
+    });
+
+    it('handles options response', async () => {
+      const response: TaskResponse = {
+        type: 'answer',
+        options: ['Option A', 'Option B', 'Option C'],
+        question: 'Choose one:',
+      };
+      mockFetchResponse(200, response);
+
+      const result = await sendTask('pick one', 'data:image/png;base64,x', {});
+
+      expect(result.options).toHaveLength(3);
+      expect(result.question).toBe('Choose one:');
+    });
+
+    it('handles suggestion with confirmation response', async () => {
+      const response: TaskResponse = {
+        type: 'answer',
+        suggestion: 'I think you want the blue one',
+        requires_confirmation: true,
+      };
+      mockFetchResponse(200, response);
+
+      const result = await sendTask('get one', 'data:image/png;base64,x', {});
+
+      expect(result.suggestion).toBe('I think you want the blue one');
+      expect(result.requires_confirmation).toBe(true);
+    });
+
+    it('handles intent field', async () => {
+      const response: TaskResponse = {
+        type: 'answer',
+        text: 'ok',
+        intent: 'follow_up',
+      };
+      mockFetchResponse(200, response);
+
+      const result = await sendTask('and what about the price?', 'data:image/png;base64,x', {});
+
+      expect(result.intent).toBe('follow_up');
+    });
+  });
 });

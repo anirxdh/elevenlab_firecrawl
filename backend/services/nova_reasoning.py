@@ -249,6 +249,17 @@ You may respond with JSON containing any of these action types:
 - {"suggestion": "...", "requires_confirmation": true} — suggest an action
 """
 
+INTENT_CLASSIFICATION = """
+When the user has an ongoing conversation, classify their intent:
+- "new_task": Starting a completely new request
+- "reply": Answering a question you asked
+- "follow_up": Asking about something related to current conversation
+- "correction": Correcting a misunderstanding
+- "interruption": Asking to stop or cancel
+
+Include your classification: {"intent": "<type>", ...rest of response}
+"""
+
 
 def _call_nova(system_prompt: str, user_content: list[dict]) -> str:
     """Call Amazon Nova Lite via AWS Bedrock converse API with vision support."""
@@ -345,6 +356,8 @@ def reason_about_page(
     user_content.append({"type": "text", "text": f"User command: {command}"})
 
     system_prompt = SYSTEM_PROMPT + CONVERSATIONAL_ADDENDUM
+    if conversation_history:
+        system_prompt += INTENT_CLASSIFICATION
 
     try:
         response_text = _call_nova(system_prompt, user_content)
@@ -433,6 +446,8 @@ def reason_continue(
     })
 
     system_prompt = CONTINUE_SYSTEM_PROMPT + CONVERSATIONAL_ADDENDUM
+    if conversation_history:
+        system_prompt += INTENT_CLASSIFICATION
 
     try:
         response_text = _call_nova(system_prompt, user_content)

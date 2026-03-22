@@ -99,6 +99,7 @@ jest.mock('../background/api/backend-client', () => ({
   checkBackendHealth: jest.fn().mockResolvedValue(false), // backend not reachable by default
   sendTask: jest.fn().mockResolvedValue({ type: 'answer', text: 'Test answer' }),
   sendTaskContinue: jest.fn().mockResolvedValue({ type: 'done' }),
+  scrapeUrl: jest.fn().mockRejectedValue(new Error('Firecrawl not available')),
 }));
 
 jest.mock('../background/api/groq-vision', () => ({
