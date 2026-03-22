@@ -29,21 +29,11 @@ export async function setSetupComplete(): Promise<void> {
   await chrome.storage.local.set({ [STORAGE_KEYS.SETUP_COMPLETE]: true });
 }
 
-// API keys loaded from chrome.storage
-const DEV_API_KEYS = {
-  groqKey: '',
-  elevenLabsKey: '',
-};
-
-export async function getApiKeys(): Promise<{
-  groqKey?: string;
-  elevenLabsKey?: string;
-}> {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.API_KEYS);
-  const stored = result[STORAGE_KEYS.API_KEYS] || {};
+export async function getApiKeys(): Promise<{ groqKey?: string; elevenLabsKey?: string }> {
+  const stored = await chrome.storage.local.get(['groqKey', 'elevenLabsKey']);
   return {
-    groqKey: stored.groqKey || DEV_API_KEYS.groqKey || undefined,
-    elevenLabsKey: stored.elevenLabsKey || DEV_API_KEYS.elevenLabsKey || undefined,
+    groqKey: stored.groqKey || undefined,
+    elevenLabsKey: stored.elevenLabsKey || undefined,
   };
 }
 

@@ -3,9 +3,10 @@
  * Falls back to Web Speech API if no API key is configured.
  */
 import { getApiKeys } from '../shared/storage';
+import { DEFAULT_VOICE_ID, DEFAULT_TTS_MODEL } from '../shared/constants';
 
-const ELEVENLABS_VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; // Rachel — natural, clear
-const ELEVENLABS_MODEL = 'eleven_flash_v2_5';
+const ELEVENLABS_VOICE_ID = DEFAULT_VOICE_ID; // Rachel — natural, clear
+const ELEVENLABS_MODEL = DEFAULT_TTS_MODEL;
 
 let enabled = true;
 let currentAudio: HTMLAudioElement | null = null;

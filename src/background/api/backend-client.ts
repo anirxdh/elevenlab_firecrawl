@@ -1,4 +1,4 @@
-const BACKEND_URL = 'http://localhost:8000';
+import { BACKEND_URL, BACKEND_WS_URL } from '../../shared/constants';
 
 /**
  * Transcribe audio by sending it to the FastAPI /transcribe endpoint.
@@ -77,7 +77,7 @@ export async function transcribeAudioStreaming(
 ): Promise<string> {
   console.log('[ScreenSense][backend-client] transcribeAudioStreaming called — base64 length:', audioBase64.length, 'mimeType:', mimeType);
 
-  const WS_URL = 'ws://localhost:8000/transcribe/stream';
+  const WS_URL = `${BACKEND_WS_URL}/transcribe/stream`;
   const TIMEOUT_MS = 15000;
 
   return new Promise<string>((resolve, reject) => {

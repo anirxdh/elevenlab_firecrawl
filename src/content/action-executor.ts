@@ -4,6 +4,7 @@
  * Executes structured DOM actions (click, type, navigate, extract, scroll)
  * with a strict allowlist, selector sanitization, and rate limiting.
  */
+import { MIN_ACTION_INTERVAL_MS } from '../shared/constants';
 
 export interface ActionRequest {
   actionType: string;
@@ -51,7 +52,6 @@ async function scrollIntoViewAndRetry(selector: string): Promise<Element | null>
 // ─── Rate limiter ─────────────────────────────────────────────────────────────
 
 let lastActionTime = 0;
-const MIN_ACTION_INTERVAL_MS = 300;
 let actionQueue: Promise<void> = Promise.resolve();
 
 async function enforceRateLimit(): Promise<void> {

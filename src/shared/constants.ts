@@ -16,3 +16,21 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const MAX_CONVERSATION_TURNS = 20;
+
+// Backend connection
+export const BACKEND_URL = 'http://localhost:8000';
+export const BACKEND_WS_URL = 'ws://localhost:8000';
+
+// ElevenLabs TTS defaults
+export const DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
+export const DEFAULT_TTS_MODEL = 'eleven_flash_v2_5';
+
+// Agent loop limits
+/** Max reasoning iterations before forcing completion */
+export const MAX_AGENT_ITERATIONS = 25;
+/** Max chars of DOM snapshot sent to Nova (prevents token overflow) */
+export const DOM_SNAPSHOT_MAX_CHARS = 30000;
+/** Timeout for backend API calls in ms */
+export const BACKEND_TIMEOUT_MS = 15000;
+/** Minimum ms between consecutive browser actions */
+export const MIN_ACTION_INTERVAL_MS = 300;
