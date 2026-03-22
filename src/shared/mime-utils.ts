@@ -1,3 +1,6 @@
+// Unified MIME type preference order. offscreen.ts previously preferred ogg-first
+// for transcription API compatibility, but webm-first is used here since both
+// codecs produce compatible audio and webm has broader browser support.
 const MIME_PREFERENCE = [
   'audio/webm;codecs=opus',
   'audio/webm',

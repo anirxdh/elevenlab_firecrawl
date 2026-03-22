@@ -17,4 +17,22 @@ describe('mime-utils', () => {
     const result = getSupportedMimeType();
     expect(typeof result).toBe('string');
   });
+
+  test('getSupportedMimeType returns first supported MIME type', () => {
+    const orig = (global as any).MediaRecorder;
+    (global as any).MediaRecorder = {
+      isTypeSupported: (mime: string) => mime === 'audio/ogg;codecs=opus',
+    };
+    expect(getSupportedMimeType()).toBe('audio/ogg;codecs=opus');
+    (global as any).MediaRecorder = orig;
+  });
+
+  test('getSupportedMimeType returns fallback when nothing supported', () => {
+    const orig = (global as any).MediaRecorder;
+    (global as any).MediaRecorder = {
+      isTypeSupported: () => false,
+    };
+    expect(getSupportedMimeType()).toBe('audio/webm');
+    (global as any).MediaRecorder = orig;
+  });
 });
