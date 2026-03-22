@@ -35,10 +35,12 @@ export async function transcribeAudio(
   });
 
   if (!response.ok) {
+    const errorBody = await response.text().catch(() => '');
+    console.error('[ScreenSense] ElevenLabs STT error:', response.status, errorBody);
     if (response.status === 401) {
       throw new Error('ElevenLabs API key missing or invalid');
     }
-    throw new Error(`Transcription failed: ${response.status}`);
+    throw new Error(`ElevenLabs STT failed (${response.status}): ${errorBody}`);
   }
 
   const data = await response.json();

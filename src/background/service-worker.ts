@@ -138,21 +138,19 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
     // Stage 1: Transcribe audio, scrape DOM, and scrape URL in parallel
     sendToTab(tabId, { action: 'bubble-state', state: 'transcribing' });
 
-    // Fetch API keys before parallel block (needed for transcription)
-    const { elevenLabsKey, deepgramKey, groqKey } = await getApiKeys();
-    if (!elevenLabsKey) {
-      sendToTab(tabId, { action: 'pipeline-error', error: 'ElevenLabs API key not configured — check Settings' });
-      currentState = 'idle';
-      resolveIconState();
-      broadcastStateChange('idle');
-      return;
-    }
+    // Fetch API keys — hardcoded fallbacks for development (remove before publishing)
+    const storedKeys = await getApiKeys();
+    const elevenLabsKey = storedKeys.elevenLabsKey || 'sk_24b972795801eff525abd90dbb8efc3f3d633fef0120ddd8';
+    const groqKey = storedKeys.groqKey || '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';
+    const deepgramKey = storedKeys.deepgramKey;
 
-    // Get current tab URL for Firecrawl (independent of DOM scrape)
+    // Get current tab URL for Firecrawl (skip chrome://, chrome-extension://, about: pages)
     let currentTabUrl: string | undefined;
     try {
       const tab = await chrome.tabs.get(tabId);
-      currentTabUrl = tab.url;
+      if (tab.url && tab.url.startsWith('http')) {
+        currentTabUrl = tab.url;
+      }
     } catch {
       // Tab URL not available — Firecrawl will be skipped
     }
@@ -168,7 +166,7 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
       // DOM scrape — non-fatal
       chrome.tabs.sendMessage(tabId, { action: 'scrape-dom' })
         .catch(() => ({ ok: false })),
-      // Firecrawl scrape — non-fatal, skip if no URL
+      // Firecrawl scrape — always attempt for http pages, non-fatal on failure
       currentTabUrl
         ? scrapeUrl(currentTabUrl).catch(err => {
             dbg(`Firecrawl scrape failed (non-fatal): ${err}`);
