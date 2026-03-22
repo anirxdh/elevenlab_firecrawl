@@ -134,6 +134,44 @@ export async function sendTaskContinue(
 }
 
 /**
+ * Scrape a URL and return its content as Markdown via Firecrawl.
+ */
+export async function scrapeUrl(url: string): Promise<string> {
+  const resp = await fetch(`${BACKEND_URL}/firecrawl/scrape`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+    throw new Error(`Scrape failed: ${err.detail}`);
+  }
+  const data = await resp.json();
+  return data.markdown;
+}
+
+/**
+ * Extract structured data from one or more URLs via Firecrawl.
+ */
+export async function extractData(
+  urls: string[],
+  prompt: string,
+  schema?: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const resp = await fetch(`${BACKEND_URL}/firecrawl/extract`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ urls, prompt, schema_def: schema }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+    throw new Error(`Extract failed: ${err.detail}`);
+  }
+  const data = await resp.json();
+  return data.data;
+}
+
+/**
  * Check if the backend is reachable.
  */
 export async function checkBackendHealth(): Promise<boolean> {
