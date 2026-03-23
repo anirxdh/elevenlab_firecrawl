@@ -18,8 +18,8 @@
 </p>
 
 <p align="center">
-  <a href="https://youtu.be/szfykWVgEYM"><strong>Demo Video</strong></a> &middot;
-  <a href="https://screen-sense-nova-anirxdh.netlify.app/"><strong>Landing Page</strong></a> &middot;
+  <a href="https://youtu.be/SYOkNKT1zcg"><strong>Demo Video</strong></a> &middot;
+  <a href="https://screen-sense-anirudh.netlify.app/"><strong>Landing Page</strong></a> &middot;
   <a href="TESTING.md"><strong>Testing Guide</strong></a>
 </p>
 
