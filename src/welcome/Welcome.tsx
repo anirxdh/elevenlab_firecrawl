@@ -426,7 +426,7 @@ const Welcome: React.FC = () => {
         .progress-dot.active {
           background: #FFFFFF;
           border-color: rgba(255, 255, 255, 0.6);
-          color: #fff;
+          color: #0d1117;
           box-shadow: 0 0 24px rgba(255, 255, 255, 0.5), 0 0 8px rgba(255, 255, 255, 0.3);
           transform: scale(1.1);
         }
@@ -535,7 +535,7 @@ const Welcome: React.FC = () => {
 
         .btn-primary {
           background: #FFFFFF;
-          color: #fff;
+          color: #0d1117;
           box-shadow: 0 4px 20px rgba(255, 255, 255, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
         }
         .btn-primary:hover {
