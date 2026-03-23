@@ -37,8 +37,8 @@
       --text-primary: #1A1A2E;
       --text-secondary: rgba(26, 26, 46, 0.55);
       --text-muted: rgba(26, 26, 46, 0.35);
-      --accent: #CCCCCC;
-      --accent-light: #FFFFFF;
+      --accent: #444444;
+      --accent-light: #666666;
       --accent-glow: rgba(255, 255, 255, 0.1);
       --teal: #0077B6;
     }
@@ -48,8 +48,9 @@
     [data-theme="light"] .nav-brand span { color: #1A1A2E; }
     [data-theme="light"] .nav-links a { color: rgba(26,26,46,0.65); }
     [data-theme="light"] .nav-links a:hover { color: #1A1A2E; }
-    [data-theme="light"] .nav-cta { color: #0d1117 !important; background: linear-gradient(135deg, #CCCCCC, #FFFFFF); border-color: transparent; }
+    [data-theme="light"] .nav-cta { color: #FFFFFF !important; background: linear-gradient(135deg, #333333, #1A1A2E); border-color: transparent; }
     [data-theme="light"] .hero h1 { color: #1A1A2E; }
+    [data-theme="light"] .hero h1 .gradient { background: linear-gradient(135deg, #555555, #333333, #0077B6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     [data-theme="light"] .hero-sub { color: rgba(26,26,46,0.6); }
     [data-theme="light"] .section-title { color: #1A1A2E; }
     [data-theme="light"] .step h3 { color: #1A1A2E; }
@@ -72,13 +73,13 @@
     [data-theme="light"] .feature-card:hover { background: rgba(255,255,255,0.9); border-color: rgba(200,200,200,0.2); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
     [data-theme="light"] .step { background: rgba(255,255,255,0.6); border-color: rgba(0,0,0,0.06); }
     [data-theme="light"] .step:hover { background: rgba(255,255,255,0.85); border-color: rgba(200,200,200,0.2); }
-    [data-theme="light"] .step-number { background: linear-gradient(135deg, #CCCCCC, #FFFFFF); color: #0d1117; }
-    [data-theme="light"] .hero-badge { background: rgba(200,200,200,0.08); border-color: rgba(200,200,200,0.2); color: #666666; }
-    [data-theme="light"] .hero-badge::before { background: #CCCCCC; }
+    [data-theme="light"] .step-number { background: linear-gradient(135deg, #333333, #555555); color: #FFFFFF; }
+    [data-theme="light"] .hero-badge { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.1); color: #444444; }
+    [data-theme="light"] .hero-badge::before { background: #444444; }
     [data-theme="light"] .key-vis { background: rgba(200,200,200,0.1); border-color: rgba(200,200,200,0.25); color: #888888; }
 
     /* Light theme — buttons */
-    [data-theme="light"] .btn-primary { background: linear-gradient(135deg, #CCCCCC, #FFFFFF); }
+    [data-theme="light"] .btn-primary { background: linear-gradient(135deg, #333333, #1A1A2E); color: #FFFFFF; }
     [data-theme="light"] .btn-secondary { border-color: rgba(0,0,0,0.12); color: #1A1A2E; }
     [data-theme="light"] .btn-secondary:hover { border-color: rgba(200,200,200,0.3); background: rgba(200,200,200,0.06); }
     [data-theme="light"] .nav-cta { background: linear-gradient(135deg, #CCCCCC, #FFFFFF); }
@@ -1104,7 +1105,7 @@
           </div>
           <div class="demo-video-wrap">
             <video autoplay loop muted playsinline preload="auto">
-              <source src="ffn-demo.mp4" type="video/mp4" />
+              <source src="FFN.mov" type="video/quicktime" />
             </video>
           </div>
         </div>
@@ -1165,7 +1166,7 @@
           </div>
           <div class="video-wrap">
             <video id="walkthrough-video" autoplay loop muted playsinline preload="auto">
-              <source src="2-nova.mp4" type="video/mp4" />
+              <source src="2-nova.mov" type="video/quicktime" />
             </video>
             <!-- autoplay loop, no play button needed -->
           </div>
