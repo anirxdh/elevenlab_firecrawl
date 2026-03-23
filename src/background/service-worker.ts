@@ -141,7 +141,7 @@ async function runPipeline(tabId: number, audioBase64: string, mimeType: string)
     // Fetch API keys — hardcoded fallbacks for development (remove before publishing)
     const storedKeys = await getApiKeys();
     const elevenLabsKey = storedKeys.elevenLabsKey || 'sk_24b972795801eff525abd90dbb8efc3f3d633fef0120ddd8';
-    const groqKey = storedKeys.groqKey || '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';
+    const groqKey = storedKeys.groqKey;
     const deepgramKey = storedKeys.deepgramKey;
 
     // Get current tab URL for Firecrawl (skip chrome://, chrome-extension://, about: pages)
