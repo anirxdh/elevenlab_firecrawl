@@ -566,7 +566,7 @@ const Welcome: React.FC = () => {
 
         .btn-launch {
           background: #FFFFFF;
-          color: #fff;
+          color: #0d1117;
           box-shadow: 0 4px 24px rgba(255, 255, 255, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
           font-size: 16px;
           padding: 16px 24px;
