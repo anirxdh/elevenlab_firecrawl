@@ -235,7 +235,7 @@ const BUBBLE_STYLES = `
   padding: 4px 8px;
   background: rgba(255, 255, 255, 0.04);
   border-radius: 6px;
-  border-left: 2px solid rgba(255, 153, 0, 0.4);
+  border-left: 2px solid rgba(255, 255, 255, 0.4);
   line-height: 1.4;
 }
 
@@ -372,7 +372,7 @@ const BUBBLE_STYLES = `
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: rgba(255, 153, 0, 0.95);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .screensense-done-check {
@@ -415,16 +415,16 @@ const BUBBLE_STYLES = `
 }
 
 .screensense-followup-input:focus {
-  border-color: rgba(255, 153, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.5);
   background: rgba(255, 255, 255, 0.08);
 }
 
 .screensense-followup-send {
-  background: rgba(255, 153, 0, 0.2);
-  border: 0.5px solid rgba(255, 153, 0, 0.3);
+  background: rgba(255, 255, 255, 0.2);
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
   padding: 6px 12px;
-  color: rgba(255, 153, 0, 0.95);
+  color: rgba(255, 255, 255, 0.95);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -433,7 +433,7 @@ const BUBBLE_STYLES = `
 }
 
 .screensense-followup-send:hover {
-  background: rgba(255, 153, 0, 0.3);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 /* ─── Context bar ─── */
@@ -502,14 +502,14 @@ const BUBBLE_STYLES = `
 }
 
 .screensense-tts-btn.active {
-  color: rgba(255, 153, 0, 0.9);
-  border-color: rgba(255, 153, 0, 0.25);
-  background: rgba(255, 153, 0, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .screensense-tts-btn:hover {
-  color: rgba(255, 153, 0, 0.8);
-  border-color: rgba(255, 153, 0, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* ─── Audio-only speaking waveform ─── */

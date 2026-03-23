@@ -9,7 +9,7 @@
   background: rgba(19, 25, 33, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 153, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   pointer-events: none;
   transition: opacity 0.15s ease;
   opacity: 1;
@@ -25,7 +25,7 @@
   min-height: 2px;
   max-height: 24px;
   height: 2px;
-  background: rgba(255, 153, 0, 0.85);
+  background: rgba(255, 255, 255, 0.85);
   border-radius: 1.5px;
   transition: height 0.05s ease-out;
 }

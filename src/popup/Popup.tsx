@@ -28,7 +28,7 @@ const Popup: React.FC = () => {
       <div style={styles.meshBg}>
         <div style={{ ...styles.meshBlob, width: 200, height: 200, background: 'radial-gradient(circle, rgba(26,58,92,0.6) 0%, transparent 70%)', top: -60, left: -40 }} />
         <div style={{ ...styles.meshBlob, width: 180, height: 180, background: 'radial-gradient(circle, rgba(45,27,78,0.4) 0%, transparent 70%)', bottom: -40, right: -30 }} />
-        <div style={{ ...styles.meshBlob, width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,153,0,0.1) 0%, transparent 70%)', top: '40%', right: '10%' }} />
+        <div style={{ ...styles.meshBlob, width: 120, height: 120, background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)', top: '40%', right: '10%' }} />
       </div>
 
       <div style={styles.glass}>
@@ -65,9 +65,9 @@ const Popup: React.FC = () => {
             onClick={openSettings}
             style={styles.settingsBtn}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255,153,0,0.1)';
-              e.currentTarget.style.color = '#FF9900';
-              e.currentTarget.style.borderColor = 'rgba(255,153,0,0.25)';
+              e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+              e.currentTarget.style.color = '#FFFFFF';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
@@ -124,18 +124,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 17,
     fontWeight: 800,
     margin: 0,
-    color: '#FF9900',
+    color: '#FFFFFF',
     letterSpacing: '-0.03em',
   },
   alertBox: {
-    background: 'rgba(255,153,0,0.08)',
-    border: '1px solid rgba(255,153,0,0.18)',
+    background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.18)',
     borderRadius: 12,
     padding: '10px 14px',
     marginBottom: 14,
   },
   alertText: {
-    color: '#FEBD69',
+    color: '#E0E0E0',
     fontSize: 13,
     margin: '0 0 6px',
     fontWeight: 600,
@@ -143,7 +143,7 @@ const styles: Record<string, React.CSSProperties> = {
   alertLink: {
     background: 'none',
     border: 'none',
-    color: '#FF9900',
+    color: '#FFFFFF',
     fontSize: 13,
     cursor: 'pointer',
     padding: 0,
@@ -162,15 +162,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "'SF Mono', 'Fira Code', monospace",
     fontSize: 13,
     fontWeight: 600,
-    color: '#FF9900',
-    background: 'rgba(255,153,0,0.12)',
-    border: '1px solid rgba(255,153,0,0.25)',
+    color: '#FFFFFF',
+    background: 'rgba(255,255,255,0.12)',
+    border: '1px solid rgba(255,255,255,0.25)',
     borderRadius: 6,
     padding: '2px 10px',
   },
   granted: {
     fontSize: 13,
-    color: '#FF9900',
+    color: '#FFFFFF',
     fontWeight: 600,
     display: 'flex',
     alignItems: 'center',

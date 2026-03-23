@@ -14,14 +14,14 @@ const GearIllustration: React.FC = () => (
   <svg viewBox="0 0 200 160" className="w-40 h-auto mx-auto" aria-hidden="true">
     <defs>
       <radialGradient id="gearGlow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#FF9900" stopOpacity="0.35">
+        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.35">
           <animate attributeName="stopOpacity" values="0.35;0.15;0.35" dur="3s" repeatCount="indefinite" />
         </stop>
-        <stop offset="100%" stopColor="#FF9900" stopOpacity="0" />
+        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
       </radialGradient>
       <linearGradient id="gearGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#FEBD69" />
-        <stop offset="100%" stopColor="#FF9900" />
+        <stop offset="0%" stopColor="#E0E0E0" />
+        <stop offset="100%" stopColor="#FFFFFF" />
       </linearGradient>
     </defs>
     <circle cx="100" cy="80" r="60" fill="url(#gearGlow)" />
@@ -31,8 +31,8 @@ const GearIllustration: React.FC = () => (
         <rect key={angle} x="-6" y="-38" width="12" height="14" rx="3" fill="url(#gearGrad)" transform={`rotate(${angle})`} opacity="0.8" />
       ))}
       <circle cx="0" cy="0" r="28" fill="none" stroke="url(#gearGrad)" strokeWidth="8" />
-      <circle cx="0" cy="0" r="12" fill="#0d1117" stroke="#FF9900" strokeWidth="2" />
-      <circle cx="0" cy="0" r="5" fill="#FF9900" opacity="0.5">
+      <circle cx="0" cy="0" r="12" fill="#0d1117" stroke="#FFFFFF" strokeWidth="2" />
+      <circle cx="0" cy="0" r="5" fill="#FFFFFF" opacity="0.5">
         <animate attributeName="opacity" values="0.5;0.25;0.5" dur="2s" repeatCount="indefinite" />
       </circle>
     </g>
@@ -254,7 +254,7 @@ const Settings: React.FC = () => {
         .mesh { position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.7; }
         .mesh-1 { width: 600px; height: 600px; background: radial-gradient(circle, #1a3a5c 0%, transparent 70%); top: -200px; left: -100px; animation: meshDrift1 20s ease-in-out infinite; }
         .mesh-2 { width: 500px; height: 500px; background: radial-gradient(circle, #2d1b4e 0%, transparent 70%); bottom: -150px; right: -50px; animation: meshDrift2 25s ease-in-out infinite; }
-        .mesh-3 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(255,153,0,0.15) 0%, transparent 70%); top: 30%; right: 10%; animation: meshDrift3 18s ease-in-out infinite; }
+        .mesh-3 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%); top: 30%; right: 10%; animation: meshDrift3 18s ease-in-out infinite; }
         .mesh-4 { width: 350px; height: 350px; background: radial-gradient(circle, #0f2b46 0%, transparent 70%); bottom: 20%; left: 5%; animation: meshDrift4 22s ease-in-out infinite; }
         @keyframes meshDrift1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(80px,60px) scale(1.1); } }
         @keyframes meshDrift2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-60px,-40px) scale(1.05); } }
@@ -265,9 +265,9 @@ const Settings: React.FC = () => {
 
         .settings-header {
           text-align: center; font-size: 24px; font-weight: 800;
-          letter-spacing: -0.04em; color: #FF9900;
+          letter-spacing: -0.04em; color: #FFFFFF;
           margin: 0 0 2rem;
-          text-shadow: 0 0 40px rgba(255, 153, 0, 0.3);
+          text-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
         }
 
         .card {
@@ -282,33 +282,33 @@ const Settings: React.FC = () => {
         .card-content { text-align: center; }
 
         .card-title { font-size: 28px; font-weight: 800; color: #fff; margin: 0.5rem 0 1.75rem; letter-spacing: -0.04em; }
-        .gradient-text { background: linear-gradient(135deg, #FF9900, #FEBD69); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .gradient-text { background: linear-gradient(135deg, #FFFFFF, #E0E0E0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
         .field-group { text-align: left; margin-bottom: 1.5rem; }
         .field-label { display: block; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35); margin-bottom: 8px; letter-spacing: 0.08em; text-transform: uppercase; }
-        .field-value { color: #FF9900; text-transform: none; }
+        .field-value { color: #FFFFFF; text-transform: none; }
 
         .key-display {
           width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
           padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
           border-radius: 14px; cursor: pointer; transition: all 0.3s ease;
         }
-        .key-display:hover { background: rgba(255,153,0,0.06); border-color: rgba(255,153,0,0.2); }
+        .key-display:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
         .key-badge {
           display: inline-flex; align-items: center; justify-content: center;
-          background: rgba(255,153,0,0.15); border: 1px solid rgba(255,153,0,0.3);
+          background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
           border-radius: 6px; padding: 2px 12px;
           font-family: 'SF Mono', 'Fira Code', monospace; font-size: 16px; font-weight: 600;
-          color: #FF9900; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          color: #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         .key-hint { font-size: 13px; color: rgba(255,255,255,0.2); }
         .key-capture {
-          width: 100%; padding: 14px; background: rgba(255,153,0,0.06);
-          border: 2px solid rgba(255,153,0,0.4); border-radius: 14px;
-          text-align: center; font-size: 14px; font-weight: 500; color: #FF9900; outline: none;
+          width: 100%; padding: 14px; background: rgba(255,255,255,0.06);
+          border: 2px solid rgba(255,255,255,0.4); border-radius: 14px;
+          text-align: center; font-size: 14px; font-weight: 500; color: #FFFFFF; outline: none;
           animation: pulseCapture 1.5s ease-in-out infinite;
         }
-        @keyframes pulseCapture { 0%,100% { border-color: rgba(255,153,0,0.4); } 50% { border-color: rgba(255,153,0,0.7); } }
+        @keyframes pulseCapture { 0%,100% { border-color: rgba(255,255,255,0.4); } 50% { border-color: rgba(255,255,255,0.7); } }
 
         .range-input {
           width: 100%; height: 6px; border-radius: 6px; background: rgba(255,255,255,0.06);
@@ -316,7 +316,7 @@ const Settings: React.FC = () => {
         }
         .range-input::-webkit-slider-thumb {
           -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
-          background: #FF9900; box-shadow: 0 2px 10px rgba(255,153,0,0.5);
+          background: #FFFFFF; box-shadow: 0 2px 10px rgba(255,255,255,0.5);
           cursor: pointer; transition: transform 0.2s ease;
         }
         .range-input::-webkit-slider-thumb:hover { transform: scale(1.15); }
@@ -329,7 +329,7 @@ const Settings: React.FC = () => {
           color: rgba(255,255,255,0.9); outline: none; transition: all 0.3s ease; box-sizing: border-box;
         }
         .text-input::placeholder { color: rgba(255,255,255,0.15); }
-        .text-input:focus { border-color: rgba(255,153,0,0.4); background: rgba(255,153,0,0.04); box-shadow: 0 0 0 3px rgba(255,153,0,0.1); }
+        .text-input:focus { border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.04); box-shadow: 0 0 0 3px rgba(255,255,255,0.1); }
 
         .select-input {
           width: 100%; padding: 14px 16px; background: rgba(255,255,255,0.03);
@@ -337,19 +337,19 @@ const Settings: React.FC = () => {
           font-size: 14px; color: rgba(255,255,255,0.9); outline: none;
           transition: all 0.3s ease; box-sizing: border-box;
           -webkit-appearance: none; appearance: none; cursor: pointer;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23FF9900' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23FFFFFF' d='M1.41 0L6 4.58 10.59 0 12 1.41l-6 6-6-6z'/%3E%3C/svg%3E");
           background-repeat: no-repeat; background-position: right 16px center;
         }
         .select-input option { background: #1a1f2e; color: rgba(255,255,255,0.9); }
-        .select-input:focus { border-color: rgba(255,153,0,0.4); background-color: rgba(255,153,0,0.04); box-shadow: 0 0 0 3px rgba(255,153,0,0.1); }
+        .select-input:focus { border-color: rgba(255,255,255,0.4); background-color: rgba(255,255,255,0.04); box-shadow: 0 0 0 3px rgba(255,255,255,0.1); }
 
         .field-hint { margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.2); }
-        .field-link { color: rgba(255,153,0,0.7); text-decoration: none; transition: color 0.2s; }
-        .field-link:hover { color: #FF9900; text-decoration: underline; }
+        .field-link { color: rgba(255,255,255,0.7); text-decoration: none; transition: color 0.2s; }
+        .field-link:hover { color: #FFFFFF; text-decoration: underline; }
 
         .section-divider { margin: 2rem 0 1.25rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; }
-        .section-title { font-size: 13px; font-weight: 700; color: rgba(255,153,0,0.8); letter-spacing: 0.05em; text-transform: uppercase; }
-        .required-badge { font-size: 9px; font-weight: 600; color: #FF9900; background: rgba(255,153,0,0.15); padding: 2px 6px; border-radius: 4px; margin-left: 6px; text-transform: none; letter-spacing: normal; }
+        .section-title { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.8); letter-spacing: 0.05em; text-transform: uppercase; }
+        .required-badge { font-size: 9px; font-weight: 600; color: #FFFFFF; background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; margin-left: 6px; text-transform: none; letter-spacing: normal; }
         .optional-badge { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; margin-left: 6px; text-transform: none; letter-spacing: normal; }
 
         .toggle-group {
@@ -365,8 +365,8 @@ const Settings: React.FC = () => {
         }
         .toggle-btn:hover { color: rgba(255,255,255,0.45); background: rgba(255,255,255,0.03); }
         .toggle-btn.active {
-          background: rgba(255,153,0,0.15); border-color: rgba(255,153,0,0.3);
-          color: #FF9900; font-weight: 600;
+          background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3);
+          color: #FFFFFF; font-weight: 600;
         }
 
         .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 0.5rem 0 1.5rem; }
@@ -386,10 +386,10 @@ const Settings: React.FC = () => {
         }
         .btn:hover::before { opacity: 1; }
         .btn-primary {
-          background: #FF9900; color: #fff;
-          box-shadow: 0 4px 20px rgba(255,153,0,0.4), 0 0 0 1px rgba(255,153,0,0.5) inset;
+          background: #FFFFFF; color: #0d1117;
+          box-shadow: 0 4px 20px rgba(255,255,255,0.4), 0 0 0 1px rgba(255,255,255,0.5) inset;
         }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,153,0,0.5), 0 0 0 1px rgba(255,153,0,0.5) inset; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,255,255,0.5), 0 0 0 1px rgba(255,255,255,0.5) inset; }
         .btn-primary:active { transform: translateY(0); }
         .btn-ghost {
           background: none; border: none; padding: 10px; font-size: 13px; font-weight: 500;

@@ -10,10 +10,10 @@ const KeyboardIllustration: React.FC = () => (
   <svg viewBox="0 0 200 140" className="w-48 h-auto mx-auto" aria-hidden="true">
     <defs>
       <radialGradient id="keyGlow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stopColor="#FF9900" stopOpacity="0.45">
+        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.45">
           <animate attributeName="stopOpacity" values="0.45;0.2;0.45" dur="2s" repeatCount="indefinite" />
         </stop>
-        <stop offset="100%" stopColor="#FF9900" stopOpacity="0" />
+        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
       </radialGradient>
       <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor="rgba(255,255,255,0.12)" />
@@ -27,7 +27,7 @@ const KeyboardIllustration: React.FC = () => (
         const isBacktick = row === 0 && col === 0;
         return (
           <rect key={`${row}-${col}`} x={30 + col * 18} y={50 + row * 22} width={14} height={14} rx={3}
-            fill={isBacktick ? '#FF9900' : 'rgba(255,255,255,0.08)'} opacity={isBacktick ? 1 : 0.6}>
+            fill={isBacktick ? '#FFFFFF' : 'rgba(255,255,255,0.08)'} opacity={isBacktick ? 1 : 0.6}>
             {isBacktick && <animate attributeName="opacity" values="1;0.6;1" dur="1.5s" repeatCount="indefinite" />}
           </rect>
         );
@@ -36,10 +36,10 @@ const KeyboardIllustration: React.FC = () => (
     <text x="37" y="61" textAnchor="middle" fill="#fff" fontSize="8" fontFamily="monospace" fontWeight="bold">`</text>
     <g>
       <animateTransform attributeName="transform" type="translate" values="0,-8; 0,0; 0,-8" dur="2s" repeatCount="indefinite" calcMode="spline" keySplines="0.4 0 0.2 1; 0.4 0 0.2 1" />
-      <circle cx="37" cy="42" r="6" fill="#FEBD69" opacity="0.4" />
-      <circle cx="37" cy="42" r="3" fill="#FF9900" opacity="0.7" />
+      <circle cx="37" cy="42" r="6" fill="#E0E0E0" opacity="0.4" />
+      <circle cx="37" cy="42" r="3" fill="#FFFFFF" opacity="0.7" />
     </g>
-    <circle cx="37" cy="57" r="8" fill="none" stroke="#FF9900" strokeWidth="1" opacity="0">
+    <circle cx="37" cy="57" r="8" fill="none" stroke="#FFFFFF" strokeWidth="1" opacity="0">
       <animate attributeName="r" values="8;24" dur="2s" repeatCount="indefinite" />
       <animate attributeName="opacity" values="0.5;0" dur="2s" repeatCount="indefinite" />
     </circle>
@@ -50,21 +50,21 @@ const MicrophoneIllustration: React.FC<{ granted: boolean }> = ({ granted }) => 
   <svg viewBox="0 0 200 180" className="w-48 h-auto mx-auto" aria-hidden="true">
     <defs>
       <radialGradient id="micGlow" cx="50%" cy="40%" r="50%">
-        <stop offset="0%" stopColor="#FF9900" stopOpacity="0.35">
+        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.35">
           <animate attributeName="stopOpacity" values="0.35;0.15;0.35" dur="2s" repeatCount="indefinite" />
         </stop>
-        <stop offset="100%" stopColor="#FF9900" stopOpacity="0" />
+        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
       </radialGradient>
       <linearGradient id="micBody" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor={granted ? '#FEBD69' : '#FFB84D'} />
-        <stop offset="100%" stopColor={granted ? '#FF9900' : '#E88B00'} />
+        <stop offset="0%" stopColor={granted ? '#E0E0E0' : '#F0F0F0'} />
+        <stop offset="100%" stopColor={granted ? '#FFFFFF' : '#D0D0D0'} />
       </linearGradient>
     </defs>
     <circle cx="100" cy="80" r="70" fill="url(#micGlow)" />
     {[30, 42, 54].map((r, i) => (
       <React.Fragment key={i}>
         <path d={`M${100 - r} 70 Q${100 - r} ${70 - r * 0.6} 100 ${70 - r * 0.6} Q${100 + r} ${70 - r * 0.6} ${100 + r} 70`}
-          fill="none" stroke={granted ? '#FEBD69' : '#FF9900'} strokeWidth="1.5" strokeLinecap="round" opacity="0">
+          fill="none" stroke={granted ? '#E0E0E0' : '#FFFFFF'} strokeWidth="1.5" strokeLinecap="round" opacity="0">
           <animate attributeName="opacity" values="0;0.5;0" dur="2s" begin={`${i * 0.3}s`} repeatCount="indefinite" />
         </path>
       </React.Fragment>
@@ -73,12 +73,12 @@ const MicrophoneIllustration: React.FC<{ granted: boolean }> = ({ granted }) => 
     {[63, 69, 75, 81, 87].map((y) => (
       <line key={y} x1="92" y1={y} x2="108" y2={y} stroke="rgba(255,255,255,0.3)" strokeWidth="0.8" />
     ))}
-    <path d="M80 95 Q80 115 100 115 Q120 115 120 95" fill="none" stroke={granted ? '#FEBD69' : '#FFB84D'} strokeWidth="2.5" strokeLinecap="round" />
-    <line x1="100" y1="115" x2="100" y2="135" stroke={granted ? '#FEBD69' : '#FFB84D'} strokeWidth="2.5" strokeLinecap="round" />
-    <line x1="88" y1="135" x2="112" y2="135" stroke={granted ? '#FEBD69' : '#FFB84D'} strokeWidth="2.5" strokeLinecap="round" />
+    <path d="M80 95 Q80 115 100 115 Q120 115 120 95" fill="none" stroke={granted ? '#E0E0E0' : '#F0F0F0'} strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="100" y1="115" x2="100" y2="135" stroke={granted ? '#E0E0E0' : '#F0F0F0'} strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="88" y1="135" x2="112" y2="135" stroke={granted ? '#E0E0E0' : '#F0F0F0'} strokeWidth="2.5" strokeLinecap="round" />
     {granted && (
       <g>
-        <circle cx="130" cy="60" r="14" fill="#FF9900" />
+        <circle cx="130" cy="60" r="14" fill="#FFFFFF" />
         <polyline points="122,60 128,66 138,54" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="24" strokeDashoffset="24">
           <animate attributeName="stroke-dashoffset" from="24" to="0" dur="0.4s" fill="freeze" />
         </polyline>
@@ -91,17 +91,17 @@ const RocketIllustration: React.FC = () => (
   <svg viewBox="0 0 200 200" className="w-48 h-auto mx-auto" aria-hidden="true">
     <defs>
       <radialGradient id="launchGlow" cx="50%" cy="60%" r="50%">
-        <stop offset="0%" stopColor="#FF9900" stopOpacity="0.25">
+        <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25">
           <animate attributeName="stopOpacity" values="0.25;0.1;0.25" dur="3s" repeatCount="indefinite" />
         </stop>
-        <stop offset="100%" stopColor="#FF9900" stopOpacity="0" />
+        <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
       </radialGradient>
       <linearGradient id="rocketBody" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor="#e8e0d5" />
-        <stop offset="100%" stopColor="#FEBD69" />
+        <stop offset="100%" stopColor="#E0E0E0" />
       </linearGradient>
       <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#FF9900" />
+        <stop offset="0%" stopColor="#FFFFFF" />
         <stop offset="100%" stopColor="#e74c3c" />
       </linearGradient>
     </defs>
@@ -117,20 +117,20 @@ const RocketIllustration: React.FC = () => (
         <animate attributeName="ry" values="18;22;16;20;18" dur="0.5s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="0.9;0.6;0.9" dur="0.3s" repeatCount="indefinite" />
       </ellipse>
-      <ellipse cx="100" cy="143" rx="4" ry="12" fill="#FEBD69" opacity="0.8">
+      <ellipse cx="100" cy="143" rx="4" ry="12" fill="#E0E0E0" opacity="0.8">
         <animate attributeName="ry" values="12;15;10;13;12" dur="0.4s" repeatCount="indefinite" />
       </ellipse>
       <path d="M88 130 L88 95 Q88 65 100 55 Q112 65 112 95 L112 130 Z" fill="url(#rocketBody)" />
-      <circle cx="100" cy="95" r="8" fill="#1a2332" stroke="#FEBD69" strokeWidth="1.5" />
+      <circle cx="100" cy="95" r="8" fill="#1a2332" stroke="#E0E0E0" strokeWidth="1.5" />
       <circle cx="100" cy="95" r="5" fill="#232F3E">
         <animate attributeName="fill" values="#232F3E;#37475A;#232F3E" dur="2s" repeatCount="indefinite" />
       </circle>
-      <path d="M88 120 L75 138 L88 132 Z" fill="#FF9900" />
-      <path d="M112 120 L125 138 L112 132 Z" fill="#FF9900" />
+      <path d="M88 120 L75 138 L88 132 Z" fill="#FFFFFF" />
+      <path d="M112 120 L125 138 L112 132 Z" fill="#FFFFFF" />
       <path d="M95 70 Q95 60 100 55" fill="none" stroke="#fff" strokeWidth="1.5" opacity="0.5" strokeLinecap="round" />
     </g>
     {[0, 1, 2, 3, 4].map((i) => (
-      <circle key={`p${i}`} cx={95 + Math.random() * 10} cy="160" r="2" fill="#FF9900" opacity="0">
+      <circle key={`p${i}`} cx={95 + Math.random() * 10} cy="160" r="2" fill="#FFFFFF" opacity="0">
         <animate attributeName="cy" values="155;185" dur="1s" begin={`${i * 0.2}s`} repeatCount="indefinite" />
         <animate attributeName="opacity" values="0.7;0" dur="1s" begin={`${i * 0.2}s`} repeatCount="indefinite" />
         <animate attributeName="cx" values={`${96 + i * 2};${90 + i * 4}`} dur="1s" begin={`${i * 0.2}s`} repeatCount="indefinite" />
@@ -361,7 +361,7 @@ const Welcome: React.FC = () => {
         }
         .mesh-3 {
           width: 400px; height: 400px;
-          background: radial-gradient(circle, rgba(255, 153, 0, 0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
           top: 30%; right: 10%;
           animation: meshDrift3 18s ease-in-out infinite;
         }
@@ -388,9 +388,9 @@ const Welcome: React.FC = () => {
           font-size: 24px;
           font-weight: 800;
           letter-spacing: -0.04em;
-          color: #FF9900;
+          color: #FFFFFF;
           margin: 0 0 1.5rem;
-          text-shadow: 0 0 40px rgba(255, 153, 0, 0.3);
+          text-shadow: 0 0 40px rgba(255, 255, 255, 0.3);
         }
 
         /* ─── Progress ─── */
@@ -409,8 +409,8 @@ const Welcome: React.FC = () => {
           transition: background 0.5s ease;
         }
         .progress-line.filled {
-          background: linear-gradient(90deg, #FF9900, #FEBD69);
-          box-shadow: 0 0 10px rgba(255, 153, 0, 0.3);
+          background: linear-gradient(90deg, #FFFFFF, #E0E0E0);
+          box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
         }
         .progress-dot {
           width: 34px; height: 34px;
@@ -424,16 +424,16 @@ const Welcome: React.FC = () => {
           backdrop-filter: blur(10px);
         }
         .progress-dot.active {
-          background: #FF9900;
-          border-color: rgba(255, 153, 0, 0.6);
+          background: #FFFFFF;
+          border-color: rgba(255, 255, 255, 0.6);
           color: #fff;
-          box-shadow: 0 0 24px rgba(255, 153, 0, 0.5), 0 0 8px rgba(255, 153, 0, 0.3);
+          box-shadow: 0 0 24px rgba(255, 255, 255, 0.5), 0 0 8px rgba(255, 255, 255, 0.3);
           transform: scale(1.1);
         }
         .progress-dot.done {
-          background: rgba(255, 153, 0, 0.2);
-          border-color: rgba(255, 153, 0, 0.4);
-          color: #FF9900;
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.4);
+          color: #FFFFFF;
         }
 
         /* ─── Glass Card ─── */
@@ -467,7 +467,7 @@ const Welcome: React.FC = () => {
           line-height: 1.2;
         }
         .gradient-text {
-          background: linear-gradient(135deg, #FF9900, #FEBD69);
+          background: linear-gradient(135deg, #FFFFFF, #E0E0E0);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
@@ -482,36 +482,36 @@ const Welcome: React.FC = () => {
 
         .key-badge {
           display: inline-flex; align-items: center; justify-content: center;
-          background: rgba(255, 153, 0, 0.15);
-          border: 1px solid rgba(255, 153, 0, 0.3);
+          background: rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.3);
           border-radius: 6px;
           padding: 2px 10px;
           font-family: 'SF Mono', 'Fira Code', monospace;
           font-size: 15px; font-weight: 600;
-          color: #FF9900;
+          color: #FFFFFF;
           box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         .key-badge-sm {
           display: inline-flex; align-items: center; justify-content: center;
-          background: rgba(255, 153, 0, 0.15);
-          border: 1px solid rgba(255, 153, 0, 0.3);
+          background: rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.3);
           border-radius: 4px;
           padding: 1px 6px;
           font-family: 'SF Mono', 'Fira Code', monospace;
           font-size: 12px; font-weight: 600;
-          color: #FF9900;
+          color: #FFFFFF;
         }
 
         .hint-box {
           display: flex; align-items: center; gap: 10px;
-          background: rgba(255, 153, 0, 0.06);
-          border: 1px solid rgba(255, 153, 0, 0.12);
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
           border-radius: 14px;
           padding: 12px 16px;
           margin-bottom: 1.5rem;
-          font-size: 13px; color: rgba(255, 153, 0, 0.7);
+          font-size: 13px; color: rgba(255, 255, 255, 0.7);
         }
-        .hint-icon { color: #FF9900; flex-shrink: 0; opacity: 0.5; }
+        .hint-icon { color: #FFFFFF; flex-shrink: 0; opacity: 0.5; }
 
         /* ─── Buttons ─── */
         .btn {
@@ -534,26 +534,26 @@ const Welcome: React.FC = () => {
         .btn:hover::before { opacity: 1; }
 
         .btn-primary {
-          background: #FF9900;
+          background: #FFFFFF;
           color: #fff;
-          box-shadow: 0 4px 20px rgba(255, 153, 0, 0.4), 0 0 0 1px rgba(255, 153, 0, 0.5) inset;
+          box-shadow: 0 4px 20px rgba(255, 255, 255, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
         }
         .btn-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 32px rgba(255, 153, 0, 0.5), 0 0 0 1px rgba(255, 153, 0, 0.5) inset;
+          box-shadow: 0 8px 32px rgba(255, 255, 255, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
         }
         .btn-primary:active { transform: translateY(0); }
 
         .btn-mic {
-          background: rgba(255, 153, 0, 0.1);
-          border: 1px solid rgba(255, 153, 0, 0.25);
-          color: #FF9900;
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          color: #FFFFFF;
           margin-bottom: 0.75rem;
           backdrop-filter: blur(10px);
         }
         .btn-mic:hover {
-          background: rgba(255, 153, 0, 0.18);
-          border-color: rgba(255, 153, 0, 0.4);
+          background: rgba(255, 255, 255, 0.18);
+          border-color: rgba(255, 255, 255, 0.4);
         }
         .btn-mic:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -565,15 +565,15 @@ const Welcome: React.FC = () => {
         }
 
         .btn-launch {
-          background: #FF9900;
+          background: #FFFFFF;
           color: #fff;
-          box-shadow: 0 4px 24px rgba(255, 153, 0, 0.5), 0 0 0 1px rgba(255, 153, 0, 0.5) inset;
+          box-shadow: 0 4px 24px rgba(255, 255, 255, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
           font-size: 16px;
           padding: 16px 24px;
         }
         .btn-launch:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 36px rgba(255, 153, 0, 0.6), 0 0 0 1px rgba(255, 153, 0, 0.5) inset;
+          box-shadow: 0 8px 36px rgba(255, 255, 255, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
         }
 
         .error-box {
@@ -587,12 +587,12 @@ const Welcome: React.FC = () => {
         }
         .success-box {
           display: flex; align-items: center; justify-content: center; gap: 8px;
-          background: rgba(255, 153, 0, 0.1);
-          border: 1px solid rgba(255, 153, 0, 0.2);
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
           border-radius: 14px;
           padding: 12px 16px;
           margin-bottom: 1rem;
-          font-size: 14px; font-weight: 600; color: #FF9900;
+          font-size: 14px; font-weight: 600; color: #FFFFFF;
           animation: successPop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         @keyframes successPop {
@@ -610,19 +610,19 @@ const Welcome: React.FC = () => {
         }
         .how-icon {
           width: 48px; height: 48px;
-          background: rgba(255, 153, 0, 0.08);
-          border: 1px solid rgba(255, 153, 0, 0.15);
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.15);
           border-radius: 14px;
           display: flex; align-items: center; justify-content: center;
-          color: #FF9900;
+          color: #FFFFFF;
           transition: all 0.3s ease;
           backdrop-filter: blur(10px);
         }
         .how-step:hover .how-icon {
-          background: rgba(255, 153, 0, 0.15);
-          border-color: rgba(255, 153, 0, 0.3);
+          background: rgba(255, 255, 255, 0.15);
+          border-color: rgba(255, 255, 255, 0.3);
           transform: translateY(-3px);
-          box-shadow: 0 8px 20px rgba(255, 153, 0, 0.15);
+          box-shadow: 0 8px 20px rgba(255, 255, 255, 0.15);
         }
         .how-label {
           font-size: 12px; font-weight: 500;
@@ -631,7 +631,7 @@ const Welcome: React.FC = () => {
         }
         .how-connector {
           width: 28px; height: 1px;
-          background: rgba(255, 153, 0, 0.15);
+          background: rgba(255, 255, 255, 0.15);
           margin-bottom: 28px;
           flex-shrink: 0;
         }

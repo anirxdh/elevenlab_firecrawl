@@ -32,8 +32,11 @@ function dbg(msg: string): void {
   const line = `[${ts}] ${msg}`;
   DEBUG_LOG.push(line);
   console.log(`[ScreenSense][DBG] ${line}`);
-  // Send errors/warnings to backend debug log
-  if (msg.toLowerCase().includes('error') || msg.toLowerCase().includes('fail')) {
+  // Send actual errors to backend debug log (not lines that just contain "error=none")
+  const lower = msg.toLowerCase();
+  const isActualError = (lower.includes('error') || lower.includes('fail'))
+    && !lower.includes('error=none') && !lower.includes('non-fatal');
+  if (isActualError) {
     sendToDebugEndpoint(line, 'error');
   }
 }
