@@ -66,11 +66,12 @@
 
     /* Light theme — cards & sections */
     [data-theme="light"] .hero-demo { box-shadow: 0 20px 60px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05); }
+    [data-theme="light"] .demo-window::before { background: linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,120,182,0.15), rgba(0,0,0,0.12)); background-size: 200% 200%; animation: borderGlow 4s ease-in-out infinite; }
     [data-theme="light"] .demo-window { background: rgba(240,242,245,0.95); border-color: rgba(0,0,0,0.08); box-shadow: 0 20px 60px rgba(0,0,0,0.08); }
     [data-theme="light"] .demo-titlebar { background: rgba(0,0,0,0.03); border-bottom-color: rgba(0,0,0,0.06); }
     [data-theme="light"] .video-window { background: rgba(240,242,245,0.95); border-color: rgba(0,0,0,0.08); }
     [data-theme="light"] .feature-card { background: rgba(255,255,255,0.7); border-color: rgba(0,0,0,0.06); box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
-    [data-theme="light"] .feature-card:hover { background: rgba(255,255,255,0.9); border-color: rgba(200,200,200,0.2); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+    [data-theme="light"] .feature-card:hover { background: rgba(255,255,255,0.9); border-color: rgba(200,200,200,0.2); box-shadow: 0 8px 24px rgba(0,0,0,0.06); transform: scale(1.02) translateY(-2px); }
     [data-theme="light"] .step { background: rgba(255,255,255,0.6); border-color: rgba(0,0,0,0.06); }
     [data-theme="light"] .step:hover { background: rgba(255,255,255,0.85); border-color: rgba(200,200,200,0.2); }
     [data-theme="light"] .step-number { background: linear-gradient(135deg, #333333, #555555); color: #FFFFFF; }
@@ -290,7 +291,7 @@
     .hero {
       position: relative;
       z-index: 1;
-      padding: 180px 0 120px;
+      padding: 160px 0 120px;
       text-align: center;
     }
 
@@ -418,9 +419,31 @@
     .demo-window {
       background: rgba(2, 30, 44, 0.8);
       border-radius: 20px;
-      border: 1px solid var(--border-subtle);
+      border: 1px solid transparent;
       overflow: hidden;
       box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 120px rgba(255, 255, 255, 0.06);
+      position: relative;
+    }
+
+    .demo-window::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 21px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(160,210,255,0.2), rgba(255,255,255,0.4));
+      background-size: 200% 200%;
+      animation: borderGlow 4s ease-in-out infinite;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    @keyframes borderGlow {
+      0%, 100% { background-position: 0% 50%; opacity: 0.6; }
+      50% { background-position: 100% 50%; opacity: 1; }
     }
 
     .demo-titlebar {
@@ -708,6 +731,7 @@
     .feature-card:hover {
       background: var(--bg-card-hover);
       border-color: rgba(255, 255, 255, 0.1);
+      transform: scale(1.02) translateY(-2px);
     }
 
     .feature-icon {
@@ -1003,6 +1027,17 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
+    /* ─── Grain Texture Overlay ─── */
+    .grain::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.03;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      z-index: 9999;
+    }
+
     /* ─── Responsive ─── */
     @media (max-width: 768px) {
       .hero { padding: 140px 0 80px; }
@@ -1042,7 +1077,7 @@
     }
   </style>
 </head>
-<body>
+<body class="grain">
 
   <!-- Animated particle canvas -->
   <canvas id="bg-canvas"></canvas>
