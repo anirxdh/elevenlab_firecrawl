@@ -16,7 +16,7 @@ export const DEFAULT_TTS_MODEL = 'eleven_flash_v2_5';
 
 export const DEFAULT_SETTINGS: ExtensionSettings = {
   shortcutKey: '`',
-  holdDelayMs: 200,
+  holdDelayMs: 50,
   maxRecordingMs: 60000,
   displayMode: 'both',
   explanationLevel: 'college',

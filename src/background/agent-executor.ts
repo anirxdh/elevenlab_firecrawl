@@ -18,11 +18,24 @@ const MAX_AGENT_ITERATIONS = 25;
 
 const DEBUG_LOG: string[] = [];
 
+/** Send a log entry to the backend debug endpoint (fire-and-forget) */
+function sendToDebugEndpoint(message: string, level: string = 'info'): void {
+  fetch('http://localhost:8000/debug', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source: 'extension', level, message }),
+  }).catch(() => { /* backend might be down — ignore */ });
+}
+
 function dbg(msg: string): void {
   const ts = new Date().toISOString().slice(11, 23); // HH:MM:SS.mmm
   const line = `[${ts}] ${msg}`;
   DEBUG_LOG.push(line);
   console.log(`[ScreenSense][DBG] ${line}`);
+  // Send errors/warnings to backend debug log
+  if (msg.toLowerCase().includes('error') || msg.toLowerCase().includes('fail')) {
+    sendToDebugEndpoint(line, 'error');
+  }
 }
 
 function dbgTimer(label: string): () => string {

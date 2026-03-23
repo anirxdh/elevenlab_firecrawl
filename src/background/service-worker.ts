@@ -795,6 +795,13 @@ function initSSE(): void {
   };
 }
 
+// Pre-create offscreen document at startup so recording starts instantly
+ensureOffscreen().then(() => {
+  console.log('[ScreenSense] Offscreen document pre-created (mic ready)');
+}).catch(() => {
+  // Will be created on first shortcut-hold if this fails
+});
+
 // Try to connect SSE on startup (non-blocking, fails silently if backend not running)
 checkBackendHealth().then((ok) => {
   if (ok) {

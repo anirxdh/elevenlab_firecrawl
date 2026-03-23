@@ -1,9 +1,13 @@
 import os
+import time
+from collections import deque
+
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -40,9 +44,42 @@ app.add_middleware(
 )
 
 
+# ── Centralized debug log (last 100 entries) ────────────────────────────────
+_debug_log: deque = deque(maxlen=100)
+
+
+def log_debug(source: str, message: str, level: str = "info"):
+    """Add an entry to the in-memory debug log."""
+    _debug_log.append({
+        "ts": time.strftime("%H:%M:%S"),
+        "source": source,
+        "level": level,
+        "message": message,
+    })
+
+
+class ClientLogEntry(BaseModel):
+    source: str = "extension"
+    level: str = "info"
+    message: str
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/debug")
+async def get_debug_log():
+    """View all recent debug entries in one place — open http://localhost:8000/debug"""
+    return {"entries": list(_debug_log)}
+
+
+@app.post("/debug")
+async def post_debug_log(entry: ClientLogEntry):
+    """Extension can POST errors here for centralized logging."""
+    log_debug(entry.source, entry.message, entry.level)
+    return {"ok": True}
 
 
 @app.get("/models")
