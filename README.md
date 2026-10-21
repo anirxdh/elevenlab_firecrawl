@@ -4,6 +4,8 @@
 
 <h1 align="center">ScreenSense Voice</h1>
 
+> **Write-up:** [Teaching ScreenSense to Hold a Conversation While It Clicks](https://anirudhvasudevan.com/blog/screensense-voice-browser-agent/), the architecture, decisions and lessons. Built by [Anirudh Vasudevan](https://anirudhvasudevan.com/).
+
 <p align="center">
   <strong>Your voice controls the browser. Claude AI executes.</strong><br/>
   An autonomous AI browser agent powered by Claude AI + ElevenLabs + Firecrawl that sees your screen, understands context, and takes action — all by voice.
